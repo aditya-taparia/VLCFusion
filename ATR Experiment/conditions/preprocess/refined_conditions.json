@@ -1,0 +1,21 @@
+[
+    "Is there a vehicle present in the image?",
+    "Is the terrain mostly flat?",
+    "Are there hills or mountains in the background?",
+    "Is the sky overcast or cloudy?",
+    "Is the image in black and white?",
+    "Is there sparse vegetation present in the image?",
+    "Does the landscape appear arid or desert-like?",
+    "Is there a road or path visible in the image?",
+    "Does the image convey a sense of desolation or remoteness?",
+    "Is the landscape devoid of human structures?",
+    "Is there any evidence of movement, such as tire tracks or dust?",
+    "Does the scene have a sense of barrenness or isolation?",
+    "Is there a military vehicle like a tank present?",
+    "Is there any dust or haze present in the scene?",
+    "Is the image devoid of visible human presence?",
+    "Is there a single structure visible?",
+    "Are there rolling hills or mountains in the background?",
+    "Is the landscape described as barren?",
+    "Is the lighting subdued or muted?"
+]
