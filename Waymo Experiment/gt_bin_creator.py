@@ -51,7 +51,7 @@ class gt_bin_creator:
         if self.waymo_bin_file is None:
             # self.waymo_bin_file = join(self.data_root,
             #                            'gt_{}.bin'.format(self.split))
-            self.waymo_bin_file = 'gt_{}_{}_2.bin'.format(self.variation1, self.split)
+            self.waymo_bin_file = 'gt_{}_{}.bin'.format(self.variation1, self.split)
 
     def get_target_timestamp(self):
         data_infos = mmengine.load(

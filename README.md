@@ -179,8 +179,104 @@ Evaluate your trained VLCFusion model using the provided Jupyter Notebook or a s
     3.  Set the paths to the preprocessed ATR test dataset (`mwir_vlc_dataset/test` and `visible_vlc_dataset/test`) and the VLM conditions for the test set (`ATR Experiment/conditions/seen/vlm_test.json`).
     4.  Execute the cells to load the model and data, perform inference, and compute evaluation metrics.
 
+
 ## Waymo Open Dataset 📝
+
+The Waymo Open Dataset is a large-scale, high-resolution dataset for autonomous driving research, featuring LiDAR point clouds, camera imagery, and synchronized sensor data.
 
 ### Preparation
 
+Preparing the Waymo Open Dataset for use involves several steps:
+
+**A. Download Waymo Open Dataset:**
+1.  Visit the [Waymo Open Dataset website](https://waymo.com/open/) and download the sensor data (TFRecord files containing LiDAR, camera, and labels) for the splits you intend to use (e.g., training, validation).
+2.  Organize the downloaded TFRecord files. For example:
+    ```
+    /path/to/your/Waymo_Open_Dataset_Root/
+    ├── training/      # Contains training_0000.tfrecord, ..., training_XXXX.tfrecord
+    ├── validation/    # Contains validation_0000.tfrecord, ..., validation_XXXX.tfrecord
+    ```
+
+**B. Generate Waymo Dataset (`._infos_*.pkl`):**
+MMDetection3D relies on intermediate annotation files (typically `.pkl` format) that store structured information about the dataset (metadata, file paths, annotations).
+
+1. **Create GT Data:** Use the `mmdet_data_creation/lidar_dataset_creation.ipynb` script to generate ground truth data for training and evaluation.
+
+**C. Create Ground Truth `.bin` Files for Evaluation (using `gt_bin_creator.py`):**
+For official Waymo evaluation, ground truth annotations need to be in a specific `.bin` format.
+
+* **Purpose:** The `gt_bin_creator.py` script processes Waymo TFRecord data (guided by an `_infos_*.pkl` file or by scanning TFRecords for specific variations like 'day') to generate these `gt.bin` files.
+* **Location:** `gt_bin_creator.py` (at the root of your VLCFusion project).
+* **Usage Example (for validation split, 'day' variation):**
+    ```bash
+    python gt_bin_creator.py \
+        --ann_file "/path/to/your/Waymo_Open_Dataset_Root/infos/waymo_infos_val.pkl" \
+        --data_root "/path/to/your/Waymo_Open_Dataset_Root/" \
+        --split "validation" \
+        --load_interval 1 \
+        # The script currently hardcodes variation1='day' and output filename.
+        # You might need to modify the script or its parameters for different variations (night, dawn_dusk)
+        # or to control the output .bin filename explicitly.
+    ```
+* **Output:** A file like `gt_day_validation.bin` (name depends on `variation` and `split` in the script) in the current directory or a path specified within the script.
+
 ### Training and Evaluation
+
+**1. Waymo Condition Generation:**
+Similar to the ATR dataset, if your Waymo experiments in VLCFusion utilize VLM-generated scene conditions for feature modulation, you'll need to generate these conditions.
+
+* **Purpose:** The `get_conditions.py` script (or `get_features.ipynb`) processes images from the Waymo dataset using a VLM to generate condition vectors.
+* **Location:** `get_conditions.py` (at the root of your VLCFusion project).
+* **Usage Example (adapt based on the refactored `get_conditions.py` arguments and your Waymo data structure):**
+    ```bash
+    # For training set conditions
+    python get_conditions.py \
+        "/path/to/your/Waymo_Open_Dataset_Root/" \
+        "/path/to/your/Waymo_Open_Dataset_Root/infos/waymo_infos_train.pkl" \
+        --questions_file "Waymo Experiment/conditions/preprocess/refined_conditions.json" \
+        --output_jsonl_file "Waymo Experiment/conditions/seen/waymo_vlm_train.jsonl" \
+        --api_key "YOUR_OPENAI_API_KEY" \
+        # Ensure waymo_image_root_path points to the directory structure
+        # from which 'img_path' in waymo_infos_train.pkl can be resolved.
+        # E.g., if img_path is "training/image_0/XXXX.png", then waymo_image_root_path
+        # would be "/path/to/your/Waymo_Open_Dataset_Root/"
+    ```
+    * Repeat for validation and test sets as needed, adjusting input/output file names. The `get_conditions.py` script expects paths to where images can be found relative to the `img_path` field in the Waymo infos file.
+
+**2. Waymo Training:**
+Training for the Waymo dataset uses the `trainer.py` script with an MMLab configuration file tailored for Waymo. Configuration for different fusion strategies (like `CBAM_FiLM`) and VLM conditions can be specified in the configs folder.
+
+* **Location:** `trainer.py` (at the root of your VLCFusion project).
+* **Purpose:** This script leverages MMEngine's `Runner` to train your `MultimodalDetr` model (or any other model defined in your MMLab config). The configuration file will specify the Waymo dataset (using the `_infos_*.pkl` files), data augmentation pipelines (potentially including GT-AUG using the database created earlier), model architecture, VLM conditions integration, and training schedules.
+* **Usage Example:**
+    ```bash
+    python trainer.py \
+        "configs/your_waymo_experiment_config.py" \
+        --work-dir "Waymo Experiment/outputs/VLCFusion_Waymo_Run1" \
+        # --resume auto # or path to a checkpoint
+        # --cfg-options model.param=value dataset.train_dataloader.batch_size=4 # For overrides
+    ```
+    * The `your_waymo_experiment_config.py` should be configured to:
+        * Load the Waymo dataset using the `waymo_infos_train.pkl` and `waymo_infos_val.pkl` files.
+        * Specify the path to the GT database if GT-AUG is used.
+        * Incorporate VLM conditions if applicable (e.g., by modifying the data loading pipeline to read `waymo_vlm_train.jsonl`).
+        * Define the `MultimodalDetr` architecture and its fusion strategies.
+
+**3. Waymo Evaluation:**
+Evaluation on the Waymo dataset is also typically performed using MMLab's tools, driven by the same `trainer.py` (if the config includes an evaluation phase) or dedicated MMLab evaluation scripts (like `tools/test.py` in MMDetection3D, or your `evaluation.py` if adapted).
+
+* **Using MMLab's Test Script (Example):** If you're using a standard MMDetection3D test script:
+    ```bash
+    # python /path/to/mmdetection3d/tools/test.py \
+    #     "configs/your_waymo_experiment_config.py" \
+    #     "Waymo Experiment/outputs/VLCFusion_Waymo_Run1/latest.pth" \
+    #     --out "Waymo Experiment/outputs/VLCFusion_Waymo_Run1/test_results.pkl" \
+    #     --eval "waymo" \  # This often triggers evaluation against the generated gt.bin
+    #     --eval-options "waymo_bin_file=/path/to/your/gt_day_validation_2.bin" # Specify your GT bin
+    ```
+* **Using `trainer.py` for evaluation (if configured for it):**
+    The `trainer.py` you provided can run evaluation if `runner.val()` or `runner.test()` is called and the config's `val_dataloader`/`test_dataloader` and `val_evaluator`/`test_evaluator` are set up for Waymo metrics (which often involves submitting results to the Waymo server or using local evaluation with the `gt.bin` file). The `runner.test()` call in your current `trainer.py` suggests it's primarily for testing.
+* **Key elements for Waymo evaluation:**
+    * Your trained model checkpoint.
+    * The Waymo validation or test set (defined by `waymo_infos_*.pkl`).
+    * The `gt.bin` file corresponding to the evaluation split, generated by `gt_bin_creator.py`. This is essential for the official Waymo metrics. Your MMLab config's `test_evaluator` would need to be of type `WaymoMetric` and configured with the path to this `gt.bin` file.

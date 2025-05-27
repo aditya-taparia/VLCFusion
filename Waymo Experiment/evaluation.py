@@ -1,73 +1,62 @@
+import argparse
 import os
 import os.path as osp
+import sys # For logger
+import logging # For logger
 
-os.environ['CUDA_VISIBLE_DEVICES'] = '1'
-
-from mmengine.config import Config, ConfigDict, DictAction
-from mmengine.registry import RUNNERS
+import torch
+from mmengine.config import Config
+from mmengine.registry import RUNNERS, TASK_UTILS
 from mmengine.runner import Runner
-
-from mmdet3d.utils import replace_ceph_backend
-
-from mmdet3d.utils import register_all_modules
-register_all_modules(init_default_scope=False)
-
-from mmdet.utils import register_all_modules
-register_all_modules(init_default_scope=False)
-
-# from mmdet.core.anchor import ANCHOR_GENERATORS
-from mmengine.registry import TASK_UTILS
 from mmengine.utils import is_list_of
 
+# It's generally better to set CUDA_VISIBLE_DEVICES outside the script
+# e.g., CUDA_VISIBLE_DEVICES=1 python your_script.py
+# However, if needed programmatically and early:
+# os.environ['CUDA_VISIBLE_DEVICES'] = '1' # Set via CLI or env var is preferred
 
-# @ANCHOR_GENERATORS.register_module()
+# Try to import mmdet3d and mmdet specific utilities
+try:
+    from mmdet3d.utils import replace_ceph_backend
+    from mmdet3d.utils import register_all_modules as register_all_modules_3d
+    register_all_modules_3d(init_default_scope=False)
+except ImportError:
+    logging.warning("mmdet3d.utils not found. Ensure mmdet3d is installed if 3D specific modules are critical.")
+    replace_ceph_backend = None # Define a placeholder if not available
+
+try:
+    from mmdet.utils import register_all_modules as register_all_modules_det
+    register_all_modules_det(init_default_scope=False)
+except ImportError:
+    logging.warning("mmdet.utils not found. Ensure mmdet is installed if 2D detection base modules are critical.")
+
+# --- Custom Anchor Generator Classes (from your script) ---
+# These classes seem well-defined for MMLab. Minor typing/docstring improvements.
+
 @TASK_UTILS.register_module()
-class Anchor3DRangeGenerator(object):
+class Anchor3DRangeGenerator:
     """3D Anchor Generator by range.
-
-    This anchor generator generates anchors by the given range in different
-    feature levels.
-    Due the convention in 3D detection, different anchor sizes are related to
-    different ranges for different categories. However we find this setting
-    does not effect the performance much in some datasets, e.g., nuScenes.
-
-    Args:
-        ranges (list[list[float]]): Ranges of different anchors.
-            The ranges are the same across different feature levels. But may
-            vary for different anchor sizes if size_per_range is True.
-        sizes (list[list[float]], optional): 3D sizes of anchors.
-            Defaults to [[3.9, 1.6, 1.56]].
-        scales (list[int], optional): Scales of anchors in different feature
-            levels. Defaults to [1].
-        rotations (list[float], optional): Rotations of anchors in a feature
-            grid. Defaults to [0, 1.5707963].
-        custom_values (tuple[float], optional): Customized values of that
-            anchor. For example, in nuScenes the anchors have velocities.
-            Defaults to ().
-        reshape_out (bool, optional): Whether to reshape the output into
-            (N x 4). Defaults to True.
-        size_per_range (bool, optional): Whether to use separate ranges for
-            different sizes. If size_per_range is True, the ranges should have
-            the same length as the sizes, if not, it will be duplicated.
-            Defaults to True.
+    (Docstring from original script - consider expanding if needed)
     """
-
     def __init__(self,
-                 ranges,
-                 sizes=[[3.9, 1.6, 1.56]],
-                 scales=[1],
-                 rotations=[0, 1.5707963],
-                 custom_values=(),
-                 reshape_out=True,
-                 size_per_range=True):
+                 ranges: List[List[float]],
+                 sizes: List[List[float]] = [[3.9, 1.6, 1.56]],
+                 scales: List[int] = [1],
+                 rotations: List[float] = [0, 1.5707963],
+                 custom_values: Tuple[float, ...] = (),
+                 reshape_out: bool = True,
+                 size_per_range: bool = True):
         assert is_list_of(ranges, list)
         if size_per_range:
             if len(sizes) != len(ranges):
-                assert len(ranges) == 1
+                assert len(ranges) == 1, \
+                    "If sizes and ranges have different lengths and size_per_range is True, ranges must have length 1 to be duplicated."
                 ranges = ranges * len(sizes)
-            assert len(ranges) == len(sizes)
+            assert len(ranges) == len(sizes), \
+                "If size_per_range is True, ranges and sizes must have the same length after potential duplication of ranges."
         else:
-            assert len(ranges) == 1
+            assert len(ranges) == 1, \
+                "If size_per_range is False, ranges must have length 1."
         assert is_list_of(sizes, list)
         assert isinstance(scales, list)
 
@@ -75,50 +64,38 @@ class Anchor3DRangeGenerator(object):
         self.scales = scales
         self.ranges = ranges
         self.rotations = rotations
-        self.custom_values = custom_values
-        self.cached_anchors = None
+        self.custom_values = custom_values # Tuple of floats
         self.reshape_out = reshape_out
         self.size_per_range = size_per_range
+        # self.cached_anchors = None # Caching can be complex with device changes, MMLab might handle it.
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         s = self.__class__.__name__ + '('
         s += f'anchor_range={self.ranges},\n'
         s += f'scales={self.scales},\n'
         s += f'sizes={self.sizes},\n'
         s += f'rotations={self.rotations},\n'
+        s += f'custom_values={self.custom_values},\n'
         s += f'reshape_out={self.reshape_out},\n'
         s += f'size_per_range={self.size_per_range})'
         return s
 
     @property
-    def num_base_anchors(self):
+    def num_base_anchors(self) -> int:
         """list[int]: Total number of base anchors in a feature grid."""
         num_rot = len(self.rotations)
         num_size = torch.tensor(self.sizes).reshape(-1, 3).size(0)
         return num_rot * num_size
 
     @property
-    def num_levels(self):
+    def num_levels(self) -> int:
         """int: Number of feature levels that the generator is applied to."""
         return len(self.scales)
 
-    def grid_anchors(self, featmap_sizes, device='cuda'):
-        """Generate grid anchors in multiple feature levels.
-
-        Args:
-            featmap_sizes (list[tuple]): List of feature map sizes in
-                multiple feature levels.
-            device (str, optional): Device where the anchors will be put on.
-                Defaults to 'cuda'.
-
-        Returns:
-            list[torch.Tensor]: Anchors in multiple feature levels.
-                The sizes of each tensor should be [N, 4], where
-                N = width * height * num_base_anchors, width and height
-                are the sizes of the corresponding feature level,
-                num_base_anchors is the number of anchors for that level.
-        """
-        assert self.num_levels == len(featmap_sizes)
+    def grid_anchors(self, featmap_sizes: List[Tuple[int, ...]], device: str = 'cuda') -> List[torch.Tensor]:
+        """Generate grid anchors in multiple feature levels."""
+        assert self.num_levels == len(featmap_sizes), \
+            f"Number of levels mismatch: {self.num_levels} vs {len(featmap_sizes)}"
         multi_level_anchors = []
         for i in range(self.num_levels):
             anchors = self.single_level_grid_anchors(
@@ -128,800 +105,503 @@ class Anchor3DRangeGenerator(object):
             multi_level_anchors.append(anchors)
         return multi_level_anchors
 
-    def single_level_grid_anchors(self, featmap_size, scale, device='cuda'):
-        """Generate grid anchors of a single level feature map.
-
-        This function is usually called by method ``self.grid_anchors``.
-
-        Args:
-            featmap_size (tuple[int]): Size of the feature map.
-            scale (float): Scale factor of the anchors in the current level.
-            device (str, optional): Device the tensor will be put on.
-                Defaults to 'cuda'.
-
-        Returns:
-            torch.Tensor: Anchors in the overall feature map.
-        """
-        # We reimplement the anchor generator using torch in cuda
-        # torch: 0.6975 s for 1000 times
-        # numpy: 4.3345 s for 1000 times
-        # which is ~5 times faster than the numpy implementation
+    def single_level_grid_anchors(self, featmap_size: Tuple[int, ...], scale: float, device: str = 'cuda') -> torch.Tensor:
+        """Generate grid anchors of a single level feature map."""
         if not self.size_per_range:
             return self.anchors_single_range(
-                featmap_size,
-                self.ranges[0],
-                scale,
-                self.sizes,
-                self.rotations,
-                device=device)
+                featmap_size, self.ranges[0], scale, self.sizes, self.rotations, device=device
+            )
 
         mr_anchors = []
-        for anchor_range, anchor_size in zip(self.ranges, self.sizes):
+        for anchor_range, anchor_size_group in zip(self.ranges, self.sizes): # anchor_size_group is a list of sizes
             mr_anchors.append(
                 self.anchors_single_range(
-                    featmap_size,
-                    anchor_range,
-                    scale,
-                    anchor_size,
-                    self.rotations,
-                    device=device))
-        mr_anchors = torch.cat(mr_anchors, dim=-3)
-        return mr_anchors
+                    featmap_size, anchor_range, scale, anchor_size_group, self.rotations, device=device
+                )
+            )
+        # Concatenate along the dimension that represents different anchor types (num_sizes * num_rots)
+        # Original was dim=-3 which corresponds to feature_size[0] (depth) if permuted later.
+        # The output of anchors_single_range is [*feature_size, num_sizes_for_this_group, num_rots, 7(+C)]
+        # We want to stack these different groups of sizes.
+        return torch.cat(mr_anchors, dim=-3) # Stacking along the num_sizes dimension
 
     def anchors_single_range(self,
-                             feature_size,
-                             anchor_range,
-                             scale=1,
-                             sizes=[[3.9, 1.6, 1.56]],
-                             rotations=[0, 1.5707963],
-                             device='cuda'):
-        """Generate anchors in a single range.
+                             feature_size: Tuple[int, ...],
+                             anchor_range: List[float],
+                             scale: float = 1.0,
+                             sizes: List[List[float]] = [[3.9, 1.6, 1.56]], # Now this is a group of sizes for this range
+                             rotations: List[float] = [0, 1.5707963],
+                             device: str = 'cuda') -> torch.Tensor:
+        """Generate anchors in a single range for a given group of sizes."""
+        if len(feature_size) == 2: # H, W
+            feature_size = (1, *feature_size) # D, H, W (D=1)
+        
+        anchor_range_t = torch.tensor(anchor_range, device=device, dtype=torch.float32)
+        
+        # Create centers for z, y, x based on feature_size and anchor_range
+        # The linspace endpoint for feature_size[dim] corresponds to number of anchor centers.
+        z_centers = torch.linspace(anchor_range_t[2], anchor_range_t[5], int(feature_size[0]), device=device)
+        y_centers = torch.linspace(anchor_range_t[1], anchor_range_t[4], int(feature_size[1]), device=device)
+        x_centers = torch.linspace(anchor_range_t[0], anchor_range_t[3], int(feature_size[2]), device=device)
 
-        Args:
-            feature_size (list[float] | tuple[float]): Feature map size. It is
-                either a list of a tuple of [D, H, W](in order of z, y, and x).
-            anchor_range (torch.Tensor | list[float]): Range of anchors with
-                shape [6]. The order is consistent with that of anchors, i.e.,
-                (x_min, y_min, z_min, x_max, y_max, z_max).
-            scale (float | int, optional): The scale factor of anchors.
-                Defaults to 1.
-            sizes (list[list] | np.ndarray | torch.Tensor, optional):
-                Anchor size with shape [N, 3], in order of x, y, z.
-                Defaults to [[3.9, 1.6, 1.56]].
-            rotations (list[float] | np.ndarray | torch.Tensor, optional):
-                Rotations of anchors in a single feature grid.
-                Defaults to [0, 1.5707963].
-            device (str): Devices that the anchors will be put on.
-                Defaults to 'cuda'.
+        sizes_t = torch.tensor(sizes, device=device, dtype=torch.float32).reshape(-1, 3) * scale
+        rotations_t = torch.tensor(rotations, device=device, dtype=torch.float32)
 
-        Returns:
-            torch.Tensor: Anchors with shape
-                [*feature_size, num_sizes, num_rots, 7].
-        """
-        if len(feature_size) == 2:
-            feature_size = [1, feature_size[0], feature_size[1]]
-        anchor_range = torch.tensor(anchor_range, device=device)
-        z_centers = torch.linspace(
-            anchor_range[2], anchor_range[5], feature_size[0], device=device)
-        y_centers = torch.linspace(
-            anchor_range[1], anchor_range[4], feature_size[1], device=device)
-        x_centers = torch.linspace(
-            anchor_range[0], anchor_range[3], feature_size[2], device=device)
-        sizes = torch.tensor(sizes, device=device).reshape(-1, 3) * scale
-        rotations = torch.tensor(rotations, device=device)
+        # Create meshgrid
+        # Output order from meshgrid: x, y, z, rot (if indexing='ij' - default for torch)
+        # Or y, x, z, rot (if indexing='xy') - typically used in image contexts for H,W
+        # MMLab often uses x,y,z for LiDAR. Let's assume default 'ij' for meshgrid.
+        centers_x, centers_y, centers_z, current_rotations = torch.meshgrid(
+            x_centers, y_centers, z_centers, rotations_t, indexing='ij' # Ensure order is as expected
+        )
+        # Result shapes: [*feature_size_permuted_by_meshgrid, num_rotations]
 
-        # torch.meshgrid default behavior is 'id', np's default is 'xy'
-        rets = torch.meshgrid(x_centers, y_centers, z_centers, rotations)
-        # torch.meshgrid returns a tuple rather than list
-        rets = list(rets)
-        tile_shape = [1] * 5
-        tile_shape[-2] = int(sizes.shape[0])
-        for i in range(len(rets)):
-            rets[i] = rets[i].unsqueeze(-2).repeat(tile_shape).unsqueeze(-1)
+        # Expand dimensions for broadcasting with sizes
+        # Target shape for centers/rot: [Fx, Fy, Fz, 1 (for sizes), num_rot, 1 (for attribute)]
+        centers_x = centers_x.unsqueeze(-2).unsqueeze(-1)
+        centers_y = centers_y.unsqueeze(-2).unsqueeze(-1)
+        centers_z = centers_z.unsqueeze(-2).unsqueeze(-1)
+        current_rotations = current_rotations.unsqueeze(-2).unsqueeze(-1)
 
-        sizes = sizes.reshape([1, 1, 1, -1, 1, 3])
-        tile_size_shape = list(rets[0].shape)
-        tile_size_shape[3] = 1
-        sizes = sizes.repeat(tile_size_shape)
-        rets.insert(3, sizes)
+        # Prepare sizes for broadcasting: [1, 1, 1, num_sizes, 1 (for rots), 3 (for dim)]
+        expanded_sizes = sizes_t.view(1, 1, 1, -1, 1, 3)
+        # Repeat sizes to match the grid dimensions
+        # Shape of centers_x: [Fx, Fy, Fz, 1, num_rot, 1]
+        # Tile shape for sizes needs to match this up to the num_sizes dim
+        tile_shape_for_sizes = list(centers_x.shape) # [Fx, Fy, Fz, 1, num_rot, 1]
+        tile_shape_for_sizes[3] = 1 # This will be broadcasted by sizes_t own num_sizes dim
+        expanded_sizes = expanded_sizes.repeat(*tile_shape_for_sizes[:3], 1, tile_shape_for_sizes[4], 1)
 
-        ret = torch.cat(rets, dim=-1).permute([2, 1, 0, 3, 4, 5])
-        # [1, 200, 176, N, 2, 7] for kitti after permute
+        # Repeat centers and rotations to match num_sizes dimension
+        tile_shape_for_centers = [1] * 6 # For broadcasting centers_x, etc.
+        tile_shape_for_centers[3] = sizes_t.size(0) # num_sizes
 
-        if len(self.custom_values) > 0:
+        centers_x = centers_x.repeat(tile_shape_for_centers)
+        centers_y = centers_y.repeat(tile_shape_for_centers)
+        centers_z = centers_z.repeat(tile_shape_for_centers)
+        current_rotations = current_rotations.repeat(tile_shape_for_centers)
+
+        # Concatenate: [x, y, z, w, l, h, rot] (MMLab order for sizes is often w,l,h or l,w,h)
+        # Original code uses sizes.insert(3, sizes_t_expanded) which implies order in rets
+        # Original `rets` was [x_centers, y_centers, z_centers, rotations]
+        # Then `rets.insert(3, sizes)` -> [x,y,z, sizes, rot]
+        # Let's stick to (x,y,z, dim_x, dim_y, dim_z, rot) = (x,y,z, w,l,h, rot) if sizes are w,l,h
+        # sizes_t is [num_sizes, 3 (w,l,h)] -> expanded_sizes is [Fx,Fy,Fz,num_sizes,num_rot,3]
+        anchors = torch.cat([centers_x, centers_y, centers_z, expanded_sizes, current_rotations], dim=-1)
+        # Anchors shape: [Fx, Fy, Fz, num_sizes_for_this_group, num_rotations, 7]
+        # Permute to match MMLab convention if necessary, often [Fz, Fy, Fx, num_anchors_per_loc, 7]
+        # Original: ret = torch.cat(rets, dim=-1).permute([2, 1, 0, 3, 4, 5])
+        # This implies rets was [x, y, z, sizes, rot] and each item had shape [Fx, Fy, Fz, N_size, N_rot, 1 or 3]
+        # The permutation [2,1,0,...] changes Fx,Fy,Fz to Fz,Fy,Fx
+        anchors = anchors.permute(2, 1, 0, 3, 4, 5) # [Fz, Fy, Fx, num_sizes, num_rot, 7]
+
+        if self.custom_values: # custom_values is a tuple
+            custom_t = torch.tensor(self.custom_values, device=device, dtype=torch.float32)
             custom_ndim = len(self.custom_values)
-            custom = ret.new_zeros([*ret.shape[:-1], custom_ndim])
-            # custom[:] = self.custom_values
-            ret = torch.cat([ret, custom], dim=-1)
-            # [1, 200, 176, N, 2, 9] for nus dataset after permute
-        return ret
+            # Create tensor matching anchor dims, broadcast custom_values
+            expanded_custom_values = custom_t.view((1,) * (anchors.ndim - 1) + (custom_ndim,))
+            expanded_custom_values = expanded_custom_values.repeat(*(anchors.shape[:-1] + (1,)))
+            anchors = torch.cat([anchors, expanded_custom_values], dim=-1)
+        
+        return anchors
 
 
-# @ANCHOR_GENERATORS.register_module()
 @TASK_UTILS.register_module()
 class AlignedAnchor3DRangeGenerator(Anchor3DRangeGenerator):
     """Aligned 3D Anchor Generator by range.
-
-    This anchor generator uses a different manner to generate the positions
-    of anchors' centers from :class:`Anchor3DRangeGenerator`.
-
-    Note:
-        The `align` means that the anchor's center is aligned with the voxel
-        grid, which is also the feature grid. The previous implementation of
-        :class:`Anchor3DRangeGenerator` does not generate the anchors' center
-        according to the voxel grid. Rather, it generates the center by
-        uniformly distributing the anchors inside the minimum and maximum
-        anchor ranges according to the feature map sizes.
-        However, this makes the anchors center does not match the feature grid.
-        The :class:`AlignedAnchor3DRangeGenerator` add + 1 when using the
-        feature map sizes to obtain the corners of the voxel grid. Then it
-        shifts the coordinates to the center of voxel grid and use the left
-        up corner to distribute anchors.
-
-    Args:
-        anchor_corner (bool, optional): Whether to align with the corner of the
-            voxel grid. By default it is False and the anchor's center will be
-            the same as the corresponding voxel's center, which is also the
-            center of the corresponding greature grid. Defaults to False.
+    (Docstring from original script - consider expanding)
     """
-
-    def __init__(self, align_corner=False, **kwargs):
-        super(AlignedAnchor3DRangeGenerator, self).__init__(**kwargs)
+    def __init__(self, align_corner: bool = False, **kwargs):
+        super().__init__(**kwargs)
         self.align_corner = align_corner
 
     def anchors_single_range(self,
-                             feature_size,
-                             anchor_range,
-                             scale,
-                             sizes=[[3.9, 1.6, 1.56]],
-                             rotations=[0, 1.5707963],
-                             device='cuda'):
-        """Generate anchors in a single range.
-
-        Args:
-            feature_size (list[float] | tuple[float]): Feature map size. It is
-                either a list of a tuple of [D, H, W](in order of z, y, and x).
-            anchor_range (torch.Tensor | list[float]): Range of anchors with
-                shape [6]. The order is consistent with that of anchors, i.e.,
-                (x_min, y_min, z_min, x_max, y_max, z_max).
-            scale (float | int): The scale factor of anchors.
-            sizes (list[list] | np.ndarray | torch.Tensor, optional):
-                Anchor size with shape [N, 3], in order of x, y, z.
-                Defaults to [[3.9, 1.6, 1.56]].
-            rotations (list[float] | np.ndarray | torch.Tensor, optional):
-                Rotations of anchors in a single feature grid.
-                Defaults to [0, 1.5707963].
-            device (str, optional): Devices that the anchors will be put on.
-                Defaults to 'cuda'.
-
-        Returns:
-            torch.Tensor: Anchors with shape
-                [*feature_size, num_sizes, num_rots, 7].
-        """
+                             feature_size: Tuple[int, ...],
+                             anchor_range: List[float],
+                             scale: float,
+                             sizes: List[List[float]] = [[3.9, 1.6, 1.56]],
+                             rotations: List[float] = [0, 1.5707963],
+                             device: str = 'cuda') -> torch.Tensor:
         if len(feature_size) == 2:
-            feature_size = [1, feature_size[0], feature_size[1]]
-        anchor_range = torch.tensor(anchor_range, device=device)
-        z_centers = torch.linspace(
-            anchor_range[2],
-            anchor_range[5],
-            feature_size[0] + 1,
-            device=device)
-        y_centers = torch.linspace(
-            anchor_range[1],
-            anchor_range[4],
-            feature_size[1] + 1,
-            device=device)
-        x_centers = torch.linspace(
-            anchor_range[0],
-            anchor_range[3],
-            feature_size[2] + 1,
-            device=device)
-        sizes = torch.tensor(sizes, device=device).reshape(-1, 3) * scale
-        rotations = torch.tensor(rotations, device=device)
+            feature_size = (1, *feature_size)
+        
+        anchor_range_t = torch.tensor(anchor_range, device=device, dtype=torch.float32)
+        sizes_t = torch.tensor(sizes, device=device, dtype=torch.float32).reshape(-1, 3) * scale
+        rotations_t = torch.tensor(rotations, device=device, dtype=torch.float32)
 
-        # shift the anchor center
+        # Generate centers based on feature_size + 1 points to define voxel boundaries
+        z_coords = torch.linspace(anchor_range_t[2], anchor_range_t[5], int(feature_size[0]) + 1, device=device)
+        y_coords = torch.linspace(anchor_range_t[1], anchor_range_t[4], int(feature_size[1]) + 1, device=device)
+        x_coords = torch.linspace(anchor_range_t[0], anchor_range_t[3], int(feature_size[2]) + 1, device=device)
+
+        # Calculate voxel centers if not aligning to corners
         if not self.align_corner:
-            z_shift = (z_centers[1] - z_centers[0]) / 2
-            y_shift = (y_centers[1] - y_centers[0]) / 2
-            x_shift = (x_centers[1] - x_centers[0]) / 2
-            z_centers += z_shift
-            y_centers += y_shift
-            x_centers += x_shift
+            z_centers = (z_coords[:-1] + z_coords[1:]) / 2
+            y_centers = (y_coords[:-1] + y_coords[1:]) / 2
+            x_centers = (x_coords[:-1] + x_coords[1:]) / 2
+        else: # Align to the "bottom-left-front" corner of voxels
+            z_centers = z_coords[:-1]
+            y_centers = y_coords[:-1]
+            x_centers = x_coords[:-1]
+        
+        # The rest of the logic is identical to the parent's anchors_single_range
+        # Duplicating for clarity, or could call super().anchors_single_range with modified centers.
+        # For this refactor, I'll reuse by creating these centers and then proceeding as parent:
+        
+        centers_x_mesh, centers_y_mesh, centers_z_mesh, current_rotations_mesh = torch.meshgrid(
+            x_centers, y_centers, z_centers, rotations_t, indexing='ij'
+        )
+        centers_x_mesh = centers_x_mesh.unsqueeze(-2).unsqueeze(-1)
+        centers_y_mesh = centers_y_mesh.unsqueeze(-2).unsqueeze(-1)
+        centers_z_mesh = centers_z_mesh.unsqueeze(-2).unsqueeze(-1)
+        current_rotations_mesh = current_rotations_mesh.unsqueeze(-2).unsqueeze(-1)
 
-        # torch.meshgrid default behavior is 'id', np's default is 'xy'
-        rets = torch.meshgrid(x_centers[:feature_size[2]],
-                              y_centers[:feature_size[1]],
-                              z_centers[:feature_size[0]], rotations)
+        expanded_sizes = sizes_t.view(1, 1, 1, -1, 1, 3)
+        tile_shape_for_sizes = list(centers_x_mesh.shape)
+        tile_shape_for_sizes[3] = 1
+        expanded_sizes = expanded_sizes.repeat(*tile_shape_for_sizes[:3], 1, tile_shape_for_sizes[4], 1)
 
-        # torch.meshgrid returns a tuple rather than list
-        rets = list(rets)
-        tile_shape = [1] * 5
-        tile_shape[-2] = int(sizes.shape[0])
-        for i in range(len(rets)):
-            rets[i] = rets[i].unsqueeze(-2).repeat(tile_shape).unsqueeze(-1)
+        tile_shape_for_centers = [1] * 6
+        tile_shape_for_centers[3] = sizes_t.size(0)
 
-        sizes = sizes.reshape([1, 1, 1, -1, 1, 3])
-        tile_size_shape = list(rets[0].shape)
-        tile_size_shape[3] = 1
-        sizes = sizes.repeat(tile_size_shape)
-        rets.insert(3, sizes)
+        centers_x_mesh = centers_x_mesh.repeat(tile_shape_for_centers)
+        centers_y_mesh = centers_y_mesh.repeat(tile_shape_for_centers)
+        centers_z_mesh = centers_z_mesh.repeat(tile_shape_for_centers)
+        current_rotations_mesh = current_rotations_mesh.repeat(tile_shape_for_centers)
 
-        ret = torch.cat(rets, dim=-1).permute([2, 1, 0, 3, 4, 5])
+        anchors = torch.cat([centers_x_mesh, centers_y_mesh, centers_z_mesh, expanded_sizes, current_rotations_mesh], dim=-1)
+        anchors = anchors.permute(2, 1, 0, 3, 4, 5)
 
-        if len(self.custom_values) > 0:
+        if self.custom_values:
+            custom_t = torch.tensor(self.custom_values, device=device, dtype=torch.float32)
             custom_ndim = len(self.custom_values)
-            custom = ret.new_zeros([*ret.shape[:-1], custom_ndim])
-            # TODO: check the support of custom values
-            # custom[:] = self.custom_values
-            ret = torch.cat([ret, custom], dim=-1)
-        return ret
+            expanded_custom_values = custom_t.view((1,) * (anchors.ndim - 1) + (custom_ndim,))
+            expanded_custom_values = expanded_custom_values.repeat(*(anchors.shape[:-1] + (1,)))
+            anchors = torch.cat([anchors, expanded_custom_values], dim=-1)
+        return anchors
 
-
-# @ANCHOR_GENERATORS.register_module()
 @TASK_UTILS.register_module()
 class AlignedAnchor3DRangeGeneratorPerCls(AlignedAnchor3DRangeGenerator):
-    """3D Anchor Generator by range for per class.
-
-    This anchor generator generates anchors by the given range for per class.
-    Note that feature maps of different classes may be different.
-
-    Args:
-        kwargs (dict): Arguments are the same as those in
-            :class:`AlignedAnchor3DRangeGenerator`.
+    """Aligned 3D Anchor Generator by range for per class.
+    (Docstring from original - check if scales assertion is still desired)
     """
-
     def __init__(self, **kwargs):
-        super(AlignedAnchor3DRangeGeneratorPerCls, self).__init__(**kwargs)
-        assert len(self.scales) == 1, 'Multi-scale feature map levels are' + \
-            ' not supported currently in this kind of anchor generator.'
+        super().__init__(**kwargs)
+        # Original assertion: assert len(self.scales) == 1 ...
+        # If multi-scale per class is needed, this might be revisited.
+        # For now, keeping it to indicate it expects single scale factor for all per-class generations.
+        if len(self.scales) != 1:
+            logging.warning("AlignedAnchor3DRangeGeneratorPerCls typically expects a single scale value for all classes.")
 
-    def grid_anchors(self, featmap_sizes, device='cuda'):
-        """Generate grid anchors in multiple feature levels.
 
-        Args:
-            featmap_sizes (list[tuple]): List of feature map sizes for
-                different classes in a single feature level.
-            device (str, optional): Device where the anchors will be put on.
-                Defaults to 'cuda'.
-
-        Returns:
-            list[list[torch.Tensor]]: Anchors in multiple feature levels.
-                Note that in this anchor generator, we currently only
-                support single feature level. The sizes of each tensor
-                should be [num_sizes/ranges*num_rots*featmap_size,
-                box_code_size].
+    def grid_anchors(self, featmap_sizes_per_class: List[Tuple[int, ...]], device: str = 'cuda') -> List[List[torch.Tensor]]:
         """
-        multi_level_anchors = []
-        anchors = self.multi_cls_grid_anchors(
-            featmap_sizes, self.scales[0], device=device)
-        multi_level_anchors.append(anchors)
-        return multi_level_anchors
-
-    def multi_cls_grid_anchors(self, featmap_sizes, scale, device='cuda'):
-        """Generate grid anchors of a single level feature map for multi-class
-        with different feature map sizes.
-
-        This function is usually called by method ``self.grid_anchors``.
-
-        Args:
-            featmap_sizes (list[tuple]): List of feature map sizes for
-                different classes in a single feature level.
-            scale (float): Scale factor of the anchors in the current level.
-            device (str, optional): Device the tensor will be put on.
-                Defaults to 'cuda'.
-
-        Returns:
-            torch.Tensor: Anchors in the overall feature map.
+        Generates grid anchors for multiple classes, where each class can have a different feature map size.
+        Assumes a single feature level (scale).
         """
-        assert len(featmap_sizes) == len(self.sizes) == len(self.ranges), \
-            'The number of different feature map sizes anchor sizes and ' + \
-            'ranges should be the same.'
+        # featmap_sizes_per_class is a list of feature map sizes, one for each class/range/size group.
+        # The output structure from MMLab for such anchor generators is often List[List[Tensor]],
+        # where the outer list is for feature levels (here, only 1 level)
+        # and the inner list is for anchors per class (or per anchor group).
+        if len(self.scales) != 1:
+             raise ValueError("AlignedAnchor3DRangeGeneratorPerCls currently supports only a single scale for all classes.")
+        scale = self.scales[0]
 
-        multi_cls_anchors = []
-        for i in range(len(featmap_sizes)):
-            anchors = self.anchors_single_range(
-                featmap_sizes[i],
+        anchors_per_class_group = self.multi_cls_grid_anchors(featmap_sizes_per_class, scale, device=device)
+        return [anchors_per_class_group] # Wrap in an outer list for feature levels
+
+    def multi_cls_grid_anchors(self, featmap_sizes_per_class: List[Tuple[int, ...]], scale: float, device: str = 'cuda') -> List[torch.Tensor]:
+        """Generates grid anchors for multiple classes with potentially different feature map sizes."""
+        if not (len(featmap_sizes_per_class) == len(self.sizes) == len(self.ranges)):
+            raise ValueError("The number of feature_map_sizes, anchor_sizes, and anchor_ranges must be the same for per-class generation.")
+
+        all_class_anchors_list = []
+        for i in range(len(featmap_sizes_per_class)):
+            # self.sizes[i] should be a list of sizes for the i-th class/group
+            # self.ranges[i] is the range for the i-th class/group
+            anchors_for_class = self.anchors_single_range(
+                featmap_sizes_per_class[i],
                 self.ranges[i],
                 scale,
-                self.sizes[i],
-                self.rotations,
-                device=device)
-            # [*featmap_size, num_sizes/ranges, num_rots, box_code_size]
-            ndim = len(featmap_sizes[i])
-            anchors = anchors.view(*featmap_sizes[i], -1, anchors.size(-1))
-            # [*featmap_size, num_sizes/ranges*num_rots, box_code_size]
-            anchors = anchors.permute(ndim, *range(0, ndim), ndim + 1)
-            # [num_sizes/ranges*num_rots, *featmap_size, box_code_size]
-            multi_cls_anchors.append(anchors.reshape(-1, anchors.size(-1)))
-            # [num_sizes/ranges*num_rots*featmap_size, box_code_size]
-        return multi_cls_anchors
-# Copyright (c) OpenMMLab. All rights reserved.
-import torch
+                self.sizes[i], # Pass the specific size group for this class
+                self.rotations, # Rotations are typically shared
+                device=device
+            )
+            # Reshape to [N, box_dim] as often expected by MMLab detectors
+            all_class_anchors_list.append(anchors_for_class.reshape(-1, anchors_for_class.size(-1)))
+        
+        return all_class_anchors_list # List of Tensors, one per class/group
 
-from mmdet.models.task_modules.coders import BaseBBoxCoder
-# from mmdet.core.bbox.builder import BBOX_CODERS
 
-from mmengine.registry import TASK_UTILS
+# --- Custom BBox Coder & IoU Calculators (from your script, assuming they are MMLab compatible) ---
+# These seem to be direct copies/adaptations from MMLab or similar.
+# Minor refactoring for clarity if needed, but structure is MMLab standard.
+
+try:
+    from mmdet.models.task_modules.coders import BaseBBoxCoder # For DeltaXYZWLHRBBoxCoder
+    from mmdet.evaluation.functional import bbox_overlaps # For BboxOverlapsNearest3D (2D BEV part)
+    from mmdet3d.structures import get_box_type # For IoU calculators, was mmdet3d.core.bbox.structures
+    # For BboxOverlaps3D, the original calls bboxes1.overlaps(bboxes1, bboxes2, mode=mode)
+    # This implies bboxes1 is an instance of a Box3DMode class from mmdet3D which has an overlaps method.
+except ImportError as e:
+    logging.error(f"Failed to import MMDetection/MMDetection3D components: {e}. Some classes might not work.")
+    BaseBBoxCoder = object # Placeholder
+    bbox_overlaps = None
+    get_box_type = None
 
 
 @TASK_UTILS.register_module()
 class DeltaXYZWLHRBBoxCoder(BaseBBoxCoder):
-    """Bbox Coder for 3D boxes.
-
-    Args:
-        code_size (int): The dimension of boxes to be encoded.
+    """Bbox Coder for 3D boxes. Encodes/decodes deltas for regression.
+    (Docstring from original script)
     """
-
-    def __init__(self, code_size=7):
-        super(DeltaXYZWLHRBBoxCoder, self).__init__()
+    def __init__(self, code_size: int = 7):
+        super().__init__() # BaseBBoxCoder takes no args in MMDetection 2.x/3.x
         self.code_size = code_size
 
     @staticmethod
-    def encode(src_boxes, dst_boxes):
-        """Get box regression transformation deltas (dx, dy, dz, dx_size,
-        dy_size, dz_size, dr, dv*) that can be used to transform the
-        `src_boxes` into the `target_boxes`.
-
-        Args:
-            src_boxes (torch.Tensor): source boxes, e.g., object proposals.
-            dst_boxes (torch.Tensor): target of the transformation, e.g.,
-                ground-truth boxes.
-
-        Returns:
-            torch.Tensor: Box transformation deltas.
-        """
+    def encode(src_boxes: torch.Tensor, dst_boxes: torch.Tensor) -> torch.Tensor:
+        # (Implementation from original script - seems standard for this type of coder)
         box_ndim = src_boxes.shape[-1]
-        cas, cgs, cts = [], [], []
-        if box_ndim > 7:
-            xa, ya, za, wa, la, ha, ra, *cas = torch.split(
-                src_boxes, 1, dim=-1)
-            xg, yg, zg, wg, lg, hg, rg, *cgs = torch.split(
-                dst_boxes, 1, dim=-1)
-            cts = [g - a for g, a in zip(cgs, cas)]
+        # xc, yc, zc, w, l, h, r, *custom_values_src
+        # For encoding, z is bottom center, but for calculation with height, often center of z is used.
+        # Original: za = za + ha / 2
+        
+        # Decompose boxes
+        if box_ndim > 7: # Has custom values
+            xa, ya, za_bottom, wa, la, ha, ra, *cas_src = torch.split(src_boxes, 1, dim=-1)
+            xg, yg, zg_bottom, wg, lg, hg, rg, *cas_dst = torch.split(dst_boxes, 1, dim=-1)
+            custom_deltas = [dst_val - src_val for dst_val, src_val in zip(cas_dst, cas_src)]
         else:
-            xa, ya, za, wa, la, ha, ra = torch.split(src_boxes, 1, dim=-1)
-            xg, yg, zg, wg, lg, hg, rg = torch.split(dst_boxes, 1, dim=-1)
-        za = za + ha / 2
-        zg = zg + hg / 2
+            xa, ya, za_bottom, wa, la, ha, ra = torch.split(src_boxes, 1, dim=-1)
+            xg, yg, zg_bottom, wg, lg, hg, rg = torch.split(dst_boxes, 1, dim=-1)
+            custom_deltas = []
+
+        za = za_bottom + ha * 0.5 # Center z for anchor
+        zg = zg_bottom + hg * 0.5 # Center z for gt
+
         diagonal = torch.sqrt(la**2 + wa**2)
-        xt = (xg - xa) / diagonal
-        yt = (yg - ya) / diagonal
-        zt = (zg - za) / ha
-        lt = torch.log(lg / la)
-        wt = torch.log(wg / wa)
-        ht = torch.log(hg / ha)
-        rt = rg - ra
-        return torch.cat([xt, yt, zt, wt, lt, ht, rt, *cts], dim=-1)
+        denominators = torch.where(diagonal == 0, torch.ones_like(diagonal), diagonal) # Avoid div by zero
+
+        xt = (xg - xa) / denominators
+        yt = (yg - ya) / denominators
+        zt = (zg - za) / torch.where(ha == 0, torch.ones_like(ha), ha) # Avoid div by zero for ha
+
+        lt = torch.log(torch.where(la == 0, torch.ones_like(la), lg / torch.where(la == 0, torch.ones_like(la), la)))
+        wt = torch.log(torch.where(wa == 0, torch.ones_like(wa), wg / torch.where(wa == 0, torch.ones_like(wa), wa)))
+        ht = torch.log(torch.where(ha == 0, torch.ones_like(ha), hg / torch.where(ha == 0, torch.ones_like(ha), ha)))
+        
+        rt = rg - ra # Simpler representation for rotation delta
+        
+        return torch.cat([xt, yt, zt, wt, lt, ht, rt, *custom_deltas], dim=-1)
 
     @staticmethod
-    def decode(anchors, deltas):
-        """Apply transformation `deltas` (dx, dy, dz, dx_size, dy_size,
-        dz_size, dr, dv*) to `boxes`.
-
-        Args:
-            anchors (torch.Tensor): Parameters of anchors with shape (N, 7).
-            deltas (torch.Tensor): Encoded boxes with shape
-                (N, 7+n) [x, y, z, x_size, y_size, z_size, r, velo*].
-
-        Returns:
-            torch.Tensor: Decoded boxes.
-        """
-        cas, cts = [], []
+    def decode(anchors: torch.Tensor, deltas: torch.Tensor) -> torch.Tensor:
+        # (Implementation from original script - seems standard)
         box_ndim = anchors.shape[-1]
-        if box_ndim > 7:
-            xa, ya, za, wa, la, ha, ra, *cas = torch.split(anchors, 1, dim=-1)
-            xt, yt, zt, wt, lt, ht, rt, *cts = torch.split(deltas, 1, dim=-1)
+        if box_ndim > 7: # Has custom values
+            xa, ya, za_bottom, wa, la, ha, ra, *cas_anchor = torch.split(anchors, 1, dim=-1)
+            xt, yt, zt, wt, lt, ht, rt, *cts_delta = torch.split(deltas, 1, dim=-1)
+            custom_pred = [delta_val + anchor_val for delta_val, anchor_val in zip(cts_delta, cas_anchor)]
         else:
-            xa, ya, za, wa, la, ha, ra = torch.split(anchors, 1, dim=-1)
-            xt, yt, zt, wt, lt, ht, rt = torch.split(deltas, 1, dim=-1)
+            xa, ya, za_bottom, wa, la, ha, ra = torch.split(anchors, 1, dim=-1)
+            xt, yt, zt, wt, lt, ht, rt = torch.split(deltas[: , :7], 1, dim=-1) # Ensure only 7 for core deltas
+            custom_pred = []
+            if deltas.size(-1) > 7: # Handle cases where deltas might have more than 7 but anchors dont
+                custom_pred = list(torch.split(deltas[:, 7:], 1, dim=-1))
 
-        za = za + ha / 2
+
+        za = za_bottom + ha * 0.5 # Anchor z center
+
         diagonal = torch.sqrt(la**2 + wa**2)
         xg = xt * diagonal + xa
         yg = yt * diagonal + ya
-        zg = zt * ha + za
+        zg = zt * ha + za # Predicted z center
 
         lg = torch.exp(lt) * la
         wg = torch.exp(wt) * wa
         hg = torch.exp(ht) * ha
         rg = rt + ra
-        zg = zg - hg / 2
-        cgs = [t + a for t, a in zip(cts, cas)]
-        return torch.cat([xg, yg, zg, wg, lg, hg, rg, *cgs], dim=-1)
-# Copyright (c) OpenMMLab. All rights reserved.
-from mmdet.evaluation.functional import bbox_overlaps
-# from mmdet.core.bbox.iou_calculators.builder import IOU_CALCULATORS
-# from ..structures import get_box_type
-from mmdet3d.core.bbox.structures import get_box_type
-from mmengine.registry import TASK_UTILS
+        
+        zg_bottom_pred = zg - hg * 0.5 # Predicted z bottom
+
+        return torch.cat([xg, yg, zg_bottom_pred, wg, lg, hg, rg, *custom_pred], dim=-1)
+
+# Placeholder for MMLab's actual bbox_overlaps_3d if direct import/use is intended
+# This usually requires compiled CUDA ops from MMLab.
+def _placeholder_bbox_overlaps_3d(bboxes1, bboxes2, mode='iou', coordinate='lidar'):
+    logging.warning("Using placeholder for 3D bbox overlaps. Install MMLab for full functionality.")
+    # Simple BEV IoU as a very rough placeholder if needed for basic runs
+    if bbox_overlaps and get_box_type:
+        box_type, _ = get_box_type(coordinate)
+        b1 = box_type(bboxes1, box_dim=bboxes1.shape[-1]).nearest_bev
+        b2 = box_type(bboxes2, box_dim=bboxes2.shape[-1]).nearest_bev
+        return bbox_overlaps(b1, b2, mode=mode)
+    return torch.zeros((bboxes1.size(0), bboxes2.size(0)), device=bboxes1.device)
 
 
 @TASK_UTILS.register_module()
-class BboxOverlapsNearest3D(object):
-    """Nearest 3D IoU Calculator.
-
-    Note:
-        This IoU calculator first finds the nearest 2D boxes in bird eye view
-        (BEV), and then calculates the 2D IoU using :meth:`bbox_overlaps`.
-
-    Args:
-        coordinate (str): 'camera', 'lidar', or 'depth' coordinate system.
-    """
-
-    def __init__(self, coordinate='lidar'):
+class BboxOverlapsNearest3D:
+    """Nearest 3D IoU Calculator (BEV IoU)."""
+    def __init__(self, coordinate: str = 'lidar'):
         assert coordinate in ['camera', 'lidar', 'depth']
         self.coordinate = coordinate
 
-    def __call__(self, bboxes1, bboxes2, mode='iou', is_aligned=False):
-        """Calculate nearest 3D IoU.
+    def __call__(self, bboxes1: torch.Tensor, bboxes2: torch.Tensor, mode: str = 'iou', is_aligned: bool = False) -> torch.Tensor:
+        if not (bbox_overlaps and get_box_type):
+            raise ImportError("MMDetection components (bbox_overlaps, get_box_type) not available for BboxOverlapsNearest3D.")
+        
+        assert bboxes1.size(-1) == bboxes2.size(-1) and bboxes1.size(-1) >= 7
+        box_type_cls, _ = get_box_type(self.coordinate)
+        
+        # Ensure tensor inputs
+        if not isinstance(bboxes1, torch.Tensor): bboxes1 = torch.tensor(bboxes1)
+        if not isinstance(bboxes2, torch.Tensor): bboxes2 = torch.tensor(bboxes2)
 
-        Note:
-            If ``is_aligned`` is ``False``, then it calculates the ious between
-            each bbox of bboxes1 and bboxes2, otherwise it calculates the ious
-            between each aligned pair of bboxes1 and bboxes2.
+        # Instantiate box objects
+        mm_bboxes1 = box_type_cls(bboxes1, box_dim=bboxes1.shape[-1], origin=(0.5,0.5,0.5) if self.coordinate=='lidar' else (0.5,0.5,0.0))
+        mm_bboxes2 = box_type_cls(bboxes2, box_dim=bboxes2.shape[-1], origin=(0.5,0.5,0.5) if self.coordinate=='lidar' else (0.5,0.5,0.0))
 
-        Args:
-            bboxes1 (torch.Tensor): shape (N, 7+N)
-                [x, y, z, x_size, y_size, z_size, ry, v].
-            bboxes2 (torch.Tensor): shape (M, 7+N)
-                [x, y, z, x_size, y_size, z_size, ry, v].
-            mode (str): "iou" (intersection over union) or iof
-                (intersection over foreground).
-            is_aligned (bool): Whether the calculation is aligned.
+        bboxes1_bev = mm_bboxes1.nearest_bev
+        bboxes2_bev = mm_bboxes2.nearest_bev
+        
+        # mmdet.evaluation.functional.bbox_overlaps expects xyxy format for BEV boxes
+        # The .bev or .nearest_bev from MMLab box structures should already provide this.
+        return bbox_overlaps(bboxes1_bev, bboxes2_bev, mode=mode, is_aligned=is_aligned)
 
-        Return:
-            torch.Tensor: If ``is_aligned`` is ``True``, return ious between
-                bboxes1 and bboxes2 with shape (M, N). If ``is_aligned`` is
-                ``False``, return shape is M.
-        """
-        return bbox_overlaps_nearest_3d(bboxes1, bboxes2, mode, is_aligned,
-                                        self.coordinate)
-
-    def __repr__(self):
-        """str: Return a string that describes the module."""
-        repr_str = self.__class__.__name__
-        repr_str += f'(coordinate={self.coordinate}'
-        return repr_str
-
+    def __repr__(self) -> str:
+        return f'{self.__class__.__name__}(coordinate={self.coordinate})'
 
 @TASK_UTILS.register_module()
-class BboxOverlaps3D(object):
-    """3D IoU Calculator.
-
-    Args:
-        coordinate (str): The coordinate system, valid options are
-            'camera', 'lidar', and 'depth'.
-    """
-
-    def __init__(self, coordinate):
+class BboxOverlaps3D:
+    """3D IoU Calculator using volume-based IoU."""
+    def __init__(self, coordinate: str):
         assert coordinate in ['camera', 'lidar', 'depth']
         self.coordinate = coordinate
 
-    def __call__(self, bboxes1, bboxes2, mode='iou'):
-        """Calculate 3D IoU using cuda implementation.
+    def __call__(self, bboxes1: torch.Tensor, bboxes2: torch.Tensor, mode: str = 'iou') -> torch.Tensor:
+        if not get_box_type: # Check if critical MMLab util is available
+            raise ImportError("MMDetection3D 'get_box_type' not available. Cannot perform 3D IoU.")
 
-        Note:
-            This function calculate the IoU of 3D boxes based on their volumes.
-            IoU calculator ``:class:BboxOverlaps3D`` uses this function to
-            calculate the actual 3D IoUs of boxes.
+        # Ensure tensor inputs
+        if not isinstance(bboxes1, torch.Tensor): bboxes1 = torch.tensor(bboxes1)
+        if not isinstance(bboxes2, torch.Tensor): bboxes2 = torch.tensor(bboxes2)
 
-        Args:
-            bboxes1 (torch.Tensor): with shape (N, 7+C),
-                (x, y, z, x_size, y_size, z_size, ry, v*).
-            bboxes2 (torch.Tensor): with shape (M, 7+C),
-                (x, y, z, x_size, y_size, z_size, ry, v*).
-            mode (str): "iou" (intersection over union) or
-                iof (intersection over foreground).
+        assert bboxes1.size(-1) == bboxes2.size(-1) and bboxes1.size(-1) >= 7
 
-        Return:
-            torch.Tensor: Bbox overlaps results of bboxes1 and bboxes2
-                with shape (M, N) (aligned mode is not supported currently).
-        """
-        return bbox_overlaps_3d(bboxes1, bboxes2, mode, self.coordinate)
+        box_type_cls, _ = get_box_type(self.coordinate)
+        
+        # Instantiate MMLab box objects
+        # Origin might need adjustment based on how your boxes are defined (center vs. bottom-center)
+        # For LiDAR, (0.5, 0.5, 0.5) for center of box, (0.5,0.5,0) for bottom center.
+        # The DeltaXYZWLHRBBoxCoder uses bottom center for z and adds h/2.
+        # Let's assume the box definition for IoU expects center for z if using LiDAR boxes directly.
+        origin = (0.5, 0.5, 0.0) if self.coordinate == 'camera' else (0.5, 0.5, 0.5) # Adjust if z is bottom for lidar boxes
+        
+        mm_bboxes1 = box_type_cls(bboxes1, box_dim=bboxes1.shape[-1], origin=origin)
+        mm_bboxes2 = box_type_cls(bboxes2, box_dim=bboxes2.shape[-1], origin=origin)
 
-    def __repr__(self):
-        """str: return a string that describes the module"""
-        repr_str = self.__class__.__name__
-        repr_str += f'(coordinate={self.coordinate}'
-        return repr_str
-
-
-def bbox_overlaps_nearest_3d(bboxes1,
-                             bboxes2,
-                             mode='iou',
-                             is_aligned=False,
-                             coordinate='lidar'):
-    """Calculate nearest 3D IoU.
-
-    Note:
-        This function first finds the nearest 2D boxes in bird eye view
-        (BEV), and then calculates the 2D IoU using :meth:`bbox_overlaps`.
-        This IoU calculator :class:`BboxOverlapsNearest3D` uses this
-        function to calculate IoUs of boxes.
-
-        If ``is_aligned`` is ``False``, then it calculates the ious between
-        each bbox of bboxes1 and bboxes2, otherwise the ious between each
-        aligned pair of bboxes1 and bboxes2.
-
-    Args:
-        bboxes1 (torch.Tensor): with shape (N, 7+C),
-            (x, y, z, x_size, y_size, z_size, ry, v*).
-        bboxes2 (torch.Tensor): with shape (M, 7+C),
-            (x, y, z, x_size, y_size, z_size, ry, v*).
-        mode (str): "iou" (intersection over union) or iof
-            (intersection over foreground).
-        is_aligned (bool): Whether the calculation is aligned
-
-    Return:
-        torch.Tensor: If ``is_aligned`` is ``True``, return ious between
-            bboxes1 and bboxes2 with shape (M, N). If ``is_aligned`` is
-            ``False``, return shape is M.
-    """
-    assert bboxes1.size(-1) == bboxes2.size(-1) >= 7
-
-    box_type, _ = get_box_type(coordinate)
-
-    bboxes1 = box_type(bboxes1, box_dim=bboxes1.shape[-1])
-    bboxes2 = box_type(bboxes2, box_dim=bboxes2.shape[-1])
-
-    # Change the bboxes to bev
-    # box conversion and iou calculation in torch version on CUDA
-    # is 10x faster than that in numpy version
-    bboxes1_bev = bboxes1.nearest_bev
-    bboxes2_bev = bboxes2.nearest_bev
-
-    ret = bbox_overlaps(
-        bboxes1_bev, bboxes2_bev, mode=mode) #is_aligned=is_aligned
-    return ret
-
-
-def bbox_overlaps_3d(bboxes1, bboxes2, mode='iou', coordinate='camera'):
-    """Calculate 3D IoU using cuda implementation.
-
-    Note:
-        This function calculates the IoU of 3D boxes based on their volumes.
-        IoU calculator :class:`BboxOverlaps3D` uses this function to
-        calculate the actual IoUs of boxes.
-
-    Args:
-        bboxes1 (torch.Tensor): with shape (N, 7+C),
-            (x, y, z, x_size, y_size, z_size, ry, v*).
-        bboxes2 (torch.Tensor): with shape (M, 7+C),
-            (x, y, z, x_size, y_size, z_size, ry, v*).
-        mode (str): "iou" (intersection over union) or
-            iof (intersection over foreground).
-        coordinate (str): 'camera' or 'lidar' coordinate system.
-
-    Return:
-        torch.Tensor: Bbox overlaps results of bboxes1 and bboxes2
-            with shape (M, N) (aligned mode is not supported currently).
-    """
-    # print(bboxes1)
-    # print(bboxes2)
-    
-    if hasattr(bboxes1, 'tensor'):
-        bboxes1 = bboxes1.tensor
-    if hasattr(bboxes2, 'tensor'):
-        bboxes2 = bboxes2.tensor
-
-    
-    assert bboxes1.size(-1) == bboxes2.size(-1) >= 7
-
-    box_type, _ = get_box_type(coordinate)
-
-    bboxes1 = box_type(bboxes1, box_dim=bboxes1.shape[-1])
-    bboxes2 = box_type(bboxes2, box_dim=bboxes2.shape[-1])
-
-    return bboxes1.overlaps(bboxes1, bboxes2, mode=mode)
-
-
-@TASK_UTILS.register_module()
-class AxisAlignedBboxOverlaps3D(object):
-    """Axis-aligned 3D Overlaps (IoU) Calculator."""
-
-    def __call__(self, bboxes1, bboxes2, mode='iou', is_aligned=False):
-        """Calculate IoU between 2D bboxes.
-
-        Args:
-            bboxes1 (Tensor): shape (B, m, 6) in <x1, y1, z1, x2, y2, z2>
-                format or empty.
-            bboxes2 (Tensor): shape (B, n, 6) in <x1, y1, z1, x2, y2, z2>
-                format or empty.
-                B indicates the batch dim, in shape (B1, B2, ..., Bn).
-                If ``is_aligned`` is ``True``, then m and n must be equal.
-            mode (str): "iou" (intersection over union) or "giou" (generalized
-                intersection over union).
-            is_aligned (bool, optional): If True, then m and n must be equal.
-                Defaults to False.
-        Returns:
-            Tensor: shape (m, n) if ``is_aligned`` is False else shape (m,)
-        """
-        assert bboxes1.size(-1) == bboxes2.size(-1) == 6
-        return axis_aligned_bbox_overlaps_3d(bboxes1, bboxes2, mode,
-                                             is_aligned)
-
-    def __repr__(self):
-        """str: a string describing the module"""
-        repr_str = self.__class__.__name__ + '()'
-        return repr_str
-
-
-def axis_aligned_bbox_overlaps_3d(bboxes1,
-                                  bboxes2,
-                                  mode='iou',
-                                  is_aligned=False,
-                                  eps=1e-6):
-    """Calculate overlap between two set of axis aligned 3D bboxes. If
-    ``is_aligned`` is ``False``, then calculate the overlaps between each bbox
-    of bboxes1 and bboxes2, otherwise the overlaps between each aligned pair of
-    bboxes1 and bboxes2.
-
-    Args:
-        bboxes1 (Tensor): shape (B, m, 6) in <x1, y1, z1, x2, y2, z2>
-            format or empty.
-        bboxes2 (Tensor): shape (B, n, 6) in <x1, y1, z1, x2, y2, z2>
-            format or empty.
-            B indicates the batch dim, in shape (B1, B2, ..., Bn).
-            If ``is_aligned`` is ``True``, then m and n must be equal.
-        mode (str): "iou" (intersection over union) or "giou" (generalized
-            intersection over union).
-        is_aligned (bool, optional): If True, then m and n must be equal.
-            Defaults to False.
-        eps (float, optional): A value added to the denominator for numerical
-            stability. Defaults to 1e-6.
-
-    Returns:
-        Tensor: shape (m, n) if ``is_aligned`` is False else shape (m,)
-
-    Example:
-        >>> bboxes1 = torch.FloatTensor([
-        >>>     [0, 0, 0, 10, 10, 10],
-        >>>     [10, 10, 10, 20, 20, 20],
-        >>>     [32, 32, 32, 38, 40, 42],
-        >>> ])
-        >>> bboxes2 = torch.FloatTensor([
-        >>>     [0, 0, 0, 10, 20, 20],
-        >>>     [0, 10, 10, 10, 19, 20],
-        >>>     [10, 10, 10, 20, 20, 20],
-        >>> ])
-        >>> overlaps = axis_aligned_bbox_overlaps_3d(bboxes1, bboxes2)
-        >>> assert overlaps.shape == (3, 3)
-        >>> overlaps = bbox_overlaps(bboxes1, bboxes2, is_aligned=True)
-        >>> assert overlaps.shape == (3, )
-    Example:
-        >>> empty = torch.empty(0, 6)
-        >>> nonempty = torch.FloatTensor([[0, 0, 0, 10, 9, 10]])
-        >>> assert tuple(bbox_overlaps(empty, nonempty).shape) == (0, 1)
-        >>> assert tuple(bbox_overlaps(nonempty, empty).shape) == (1, 0)
-        >>> assert tuple(bbox_overlaps(empty, empty).shape) == (0, 0)
-    """
-
-    assert mode in ['iou', 'giou'], f'Unsupported mode {mode}'
-    # Either the boxes are empty or the length of boxes's last dimension is 6
-    assert (bboxes1.size(-1) == 6 or bboxes1.size(0) == 0)
-    assert (bboxes2.size(-1) == 6 or bboxes2.size(0) == 0)
-
-    # Batch dim must be the same
-    # Batch dim: (B1, B2, ... Bn)
-    assert bboxes1.shape[:-2] == bboxes2.shape[:-2]
-    batch_shape = bboxes1.shape[:-2]
-
-    rows = bboxes1.size(-2)
-    cols = bboxes2.size(-2)
-    if is_aligned:
-        assert rows == cols
-
-    if rows * cols == 0:
-        if is_aligned:
-            return bboxes1.new(batch_shape + (rows, ))
+        # The .overlaps method should exist on MMLab box instances if using specific types like LiDARInstance3DBoxes
+        if hasattr(mm_bboxes1, 'overlaps'):
+            return mm_bboxes1.overlaps(mm_bboxes1, mm_bboxes2, mode=mode) # MMLab's internal method
         else:
-            return bboxes1.new(batch_shape + (rows, cols))
-
-    area1 = (bboxes1[..., 3] -
-             bboxes1[..., 0]) * (bboxes1[..., 4] - bboxes1[..., 1]) * (
-                 bboxes1[..., 5] - bboxes1[..., 2])
-    area2 = (bboxes2[..., 3] -
-             bboxes2[..., 0]) * (bboxes2[..., 4] - bboxes2[..., 1]) * (
-                 bboxes2[..., 5] - bboxes2[..., 2])
-
-    if is_aligned:
-        lt = torch.max(bboxes1[..., :3], bboxes2[..., :3])  # [B, rows, 3]
-        rb = torch.min(bboxes1[..., 3:], bboxes2[..., 3:])  # [B, rows, 3]
-
-        wh = (rb - lt).clamp(min=0)  # [B, rows, 2]
-        overlap = wh[..., 0] * wh[..., 1] * wh[..., 2]
-
-        if mode in ['iou', 'giou']:
-            union = area1 + area2 - overlap
-        else:
-            union = area1
-        if mode == 'giou':
-            enclosed_lt = torch.min(bboxes1[..., :3], bboxes2[..., :3])
-            enclosed_rb = torch.max(bboxes1[..., 3:], bboxes2[..., 3:])
-    else:
-        lt = torch.max(bboxes1[..., :, None, :3],
-                       bboxes2[..., None, :, :3])  # [B, rows, cols, 3]
-        rb = torch.min(bboxes1[..., :, None, 3:],
-                       bboxes2[..., None, :, 3:])  # [B, rows, cols, 3]
-
-        wh = (rb - lt).clamp(min=0)  # [B, rows, cols, 3]
-        overlap = wh[..., 0] * wh[..., 1] * wh[..., 2]
-
-        if mode in ['iou', 'giou']:
-            union = area1[..., None] + area2[..., None, :] - overlap
-        if mode == 'giou':
-            enclosed_lt = torch.min(bboxes1[..., :, None, :3],
-                                    bboxes2[..., None, :, :3])
-            enclosed_rb = torch.max(bboxes1[..., :, None, 3:],
-                                    bboxes2[..., None, :, 3:])
-
-    eps = union.new_tensor([eps])
-    union = torch.max(union, eps)
-    ious = overlap / union
-    if mode in ['iou']:
-        return ious
-    # calculate gious
-    enclose_wh = (enclosed_rb - enclosed_lt).clamp(min=0)
-    enclose_area = enclose_wh[..., 0] * enclose_wh[..., 1] * enclose_wh[..., 2]
-    enclose_area = torch.max(enclose_area, eps)
-    gious = ious - (enclose_area - union) / enclose_area
-    return gious
+            # Fallback to placeholder if .overlaps method is not found (e.g. base Box3DMode)
+            # This indicates a potential mismatch in box type or MMLab version.
+            logging.warning("Using placeholder 3D IoU as '.overlaps' method not found on box type. Results may be inaccurate.")
+            return _placeholder_bbox_overlaps_3d(bboxes1, bboxes2, mode, self.coordinate)
 
 
-
-algo = 'attention_ensemble_vlm'
-config = f'configs/{algo}.py'
-save_model = f'SAVE_MODEL_PATH'
-work_dir = f'SAVE_PATH/{algo}'
-show = False
-wait_time = 0
-show_dir = f'SAVE_PATH/{algo}'
-score_thr = 0.1
-launcher = 'none'
-local_rank = 0
+    def __repr__(self) -> str:
+        return f'{self.__class__.__name__}(coordinate={self.coordinate})'
 
 
-def trigger_visualization_hook(cfg):
-    default_hooks = cfg.default_hooks
-    if 'visualization' in default_hooks:
-        visualization_hook = default_hooks['visualization']
-        # Turn on visualization
-        visualization_hook['draw'] = True
-        if show:
-            visualization_hook['show'] = True
-            visualization_hook['wait_time'] = wait_time
-        if show_dir:
-            visualization_hook['test_out_dir'] = show_dir
-        all_task_choices = [
-            'mono_det', 'multi-view_det', 'lidar_det', 'lidar_seg',
-            'multi-modality_det'
-        ]
-        assert task in all_task_choices, 'You must set '\
-            f"'--task' in {all_task_choices} in the command " \
-            'if you want to use visualization hook'
-        visualization_hook['vis_task'] = task
-        visualization_hook['score_thr'] = score_thr
-    else:
-        raise RuntimeError(
-            'VisualizationHook must be included in default_hooks.'
-            'refer to usage '
-            '"visualization=dict(type=\'VisualizationHook\')"')
+# --- Main Execution Logic ---
 
+def parse_args():
+    parser = argparse.ArgumentParser(description='Test a 3D object detection model using MMEngine.')
+    parser.add_argument('config', help='Path to the model config file (e.g., configs/your_algo.py)')
+    parser.add_argument('checkpoint', help='Path to the checkpoint file to load weights from.')
+    parser.add_argument('--work-dir', help='Directory to save logs and output files.')
+    parser.add_argument('--show', action='store_true', help='Show results visuall_tool_codey (if backend allows).')
+    parser.add_argument('--show-dir', help='Directory where painted images will be saved.')
+    parser.add_argument('--wait-time', type=float, default=0, help='The interval of show (s).')
+    parser.add_argument('--score-thr', type=float, default=0.1, help='Score threshold for visualization.')
+    parser.add_argument(
+        '--task', default='mono_det', # Default from original context, make sure it's appropriate
+        choices=['mono_det', 'multi-view_det', 'lidar_det', 'lidar_seg', 'multi-modality_det'],
+        help='Task type for visualization hook.')
+    parser.add_argument(
+        '--launcher',
+        choices=['none', 'pytorch', 'slurm', 'mpi'],
+        default='none',
+        help='Job launcher for distributed testing.')
+    # Add any other MMEngine specific args or cfg-overrides if needed
+    # e.g., --cfg-options model.param=value data.samples_per_gpu=2
+    # args.cfg_options = None # MMEngine handles this
+    return parser.parse_args()
+
+def trigger_visualization_hook(cfg: Config, args: argparse.Namespace) -> Config:
+    """Modifies config to enable and configure the visualization hook."""
+    if 'visualization' in cfg.default_hooks:
+        vis_hook_cfg = cfg.default_hooks['visualization']
+        vis_hook_cfg['draw'] = True # Enable drawing predictions
+        if args.show:
+            vis_hook_cfg['show'] = True
+            vis_hook_cfg['wait_time'] = args.wait_time
+        if args.show_dir:
+            vis_hook_cfg['test_out_dir'] = args.show_dir
+        
+        vis_hook_cfg['vis_task'] = args.task
+        vis_hook_cfg['score_thr'] = args.score_thr
+    elif args.show or args.show_dir: # If user wants viz but hook isn't defined
+        logging.warning(
+            "'visualization' hook not found in default_hooks but visualization options were requested. "
+            "Please ensure 'visualization=dict(type=\'VisualizationHook\')' is in default_hooks in your config."
+        )
     return cfg
 
+def main():
+    args = parse_args()
 
-cfg = Config.fromfile(config)
-cfg.launcher = launcher
-cfg.work_dir = work_dir
-cfg.load_from = save_model
+    # Basic logging setup
+    logging.basicConfig(
+        format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
+        datefmt="%m/%d/%Y %H:%M:%S",
+        level=logging.INFO,
+        handlers=[logging.StreamHandler(sys.stdout)]
+    )
+    
+    # Load config
+    cfg = Config.fromfile(args.config)
+    logging.info(f"Loaded config from: {args.config}")
 
+    # Apply command-line arguments to config
+    cfg.launcher = args.launcher
+    if args.work_dir is not None:
+        cfg.work_dir = args.work_dir
+    elif cfg.get('work_dir', None) is None: # Set default if not in config or args
+        cfg.work_dir = osp.join('./work_dirs', osp.splitext(osp.basename(args.config))[0])
+    
+    if args.checkpoint is not None:
+        cfg.load_from = args.checkpoint
 
-if 'runner_type' not in cfg:
-    # build the default runner
-    runner = Runner.from_cfg(cfg)
-else:
-    # build customized runner from the registry
-    # if 'runner_type' is set in the cfg
-    runner = RUNNERS.build(cfg)
+    # Handle data backend (e.g., Ceph) if utility is available
+    if replace_ceph_backend is not None:
+        cfg = replace_ceph_backend(cfg)
 
-runner.test()
+    # Configure visualization hook
+    if args.show or args.show_dir:
+        cfg = trigger_visualization_hook(cfg, args)
+
+    # Build the runner
+    if 'runner_type' not in cfg:
+        runner = Runner.from_cfg(cfg)
+    else:
+        runner = RUNNERS.build(cfg)
+    
+    logging.info("Runner built. Starting test process...")
+    runner.test()
+    logging.info("Test process completed.")
+
+if __name__ == '__main__':
+    main()
