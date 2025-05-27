@@ -1,13 +1,11 @@
 # VLCFusion
 
-## Datasets
+This project utilizes two datasets for training and evaluation: the **ATR Dataset** and the **Waymo Open Dataset**.
 
-This project utilizes two main datasets for training and evaluation: the **ATR Dataset** and the **Waymo Open Dataset**.
-
-### ATR Dataset Preparation 📝
-
+## ATR Dataset 📝
 The ATR dataset, specifically the `cegr` (MWIR/Infrared) and `i1co` (Visible) video collections, is crucial for evaluating VLCFusion's multi-modal object detection capabilities.
 
+### Preparation
 The following pipeline of Python scripts is provided to process the raw ATR data into a structured format suitable for training and evaluating VLCFusion. These scripts automate the parsing of proprietary annotation files, synchronization of Infrared and Visible video frames based on timestamps, extraction of images, and generation of detailed metadata files (`metadata.jsonl`) which include bounding box annotations.
 
 **Prerequisites for ATR Processing:**
@@ -33,11 +31,11 @@ Before running the processing scripts, organize your downloaded and (video-conve
 **Processing Scripts:**
 We recommend placing the following scripts and the `config_utils.py` file into a dedicated `data_processing/atr/` directory within your local `VLCFusion` repository clone for better organization.
 
-**0. Configuration Utility (`ATR Experiment/ATR data preprocessing/config_utils.py`)**
+**1. Configuration Utility (`ATR Experiment/ATR data preprocessing/config_utils.py`)**
 * **Purpose:** This script is not executed directly but serves as a centralized module for shared constants (e.g., lists of scenarios and classes as defined in the VLCFusion paper, target type mappings) and utility functions (e.g., JSON reading, Julian date conversion, data serialization) that are imported by the other processing scripts.
 * **Important:** Please review the `SCENARIOS`, `CLASSES_FILTER`, and `TGTTYPE_TO_ID` / `TGTID_TO_CATEGORIES` mappings within this file to ensure they precisely match the subset of the ATR dataset (e.g., 9 scenarios, 10 target classes) used for the experiments in the VLCFusion paper.
 
-**1. AGT to JSON Conversion (`ATR Experiment/ATR data preprocessing/agt_to_json_parser.py`)**
+**2. AGT to JSON Conversion (`ATR Experiment/ATR data preprocessing/agt_to_json_parser.py`)**
 * **Purpose:** Parses the proprietary `.agt` text files (containing frame-by-frame annotations for ATR videos) and converts them into a more accessible `.json` format.
 * **Usage Example:** Run this script for both `cegr` (IR) and `i1co` (Visible) `.agt` files.
     ```bash
@@ -52,7 +50,7 @@ We recommend placing the following scripts and the `config_utils.py` file into a
         --save_path "/path/to/your/processed_atr_output/i1co/agt-json"
     ```
 
-**2. Initial DataFrame Preparation (`ATR Experiment/ATR data preprocessing/prepare_initial_dataframes.py`)**
+**3. Initial DataFrame Preparation (`ATR Experiment/ATR data preprocessing/prepare_initial_dataframes.py`)**
 * **Purpose:** Creates initial Pandas DataFrames containing detailed metadata. It filters video files based on scenarios/classes defined in `config_utils.py`, ensures that corresponding IR and Visible video tags exist, and extracts frame-level information from the AGT-JSON files.
 * **Usage Example:**
     ```bash
@@ -65,8 +63,8 @@ We recommend placing the following scripts and the `config_utils.py` file into a
     ```
 * **Outputs:** This script generates `cegr_initial_metadata.csv` (for IR) and `i1co_initial_metadata.csv` (for Visible) in the specified output directory.
 
-**3. IR-RGB Data Combination and Synchronization (`ATR Experiment/ATR data preprocessing/combine_and_synchronize.py`)**
-* **Purpose:** Takes the initial metadata DataFrames (from S2) and synchronizes IR and Visible frames. For each IR frame, it identifies the closest corresponding Visible frame based on timestamps, adhering to a 100ms tolerance window as specified in the VLCFusion paper.
+**4. IR-RGB Data Combination and Synchronization (`ATR Experiment/ATR data preprocessing/combine_and_synchronize.py`)**
+* **Purpose:** Takes the initial metadata DataFrames and synchronizes IR and Visible frames. For each IR frame, it identifies the closest corresponding Visible frame based on timestamps, adhering to a 100ms tolerance window as specified in the VLCFusion paper.
 * **Usage Example:**
     ```bash
     python ATR Experiment/ATR data preprocessing/combine_and_synchronize.py \
@@ -79,8 +77,8 @@ We recommend placing the following scripts and the `config_utils.py` file into a
     ```
 * **Output:** Produces `combined_synchronized_data.csv`, where each row represents a successfully synchronized IR-Visible frame pair.
 
-**4. Final Image Dataset Construction (`ATR Experiment/ATR data preprocessing/build_image_datasets.py`)**
-* **Purpose:** This script constructs the final image datasets ready for use with VLCFusion. It takes the synchronized frame data (from S3) and splits it into training, validation, and test sets. The split is performed at the video tag level (e.g., all frames from `cegr02003_0001` go into the same set) using a configurable random seed for reproducibility. For each frame pair, it extracts images from the `.avi` files. Bounding boxes for IR images are derived from `.bbox_met` files, while bounding boxes for Visible images are interpolated based on the IR bounding boxes and target center coordinates from the AGT-JSON files. Finally, it generates `metadata.jsonl` annotation files for each data split.
+**5. Final Image Dataset Construction (`ATR Experiment/ATR data preprocessing/build_image_datasets.py`)**
+* **Purpose:** This script constructs the final image datasets ready for use with VLCFusion. It takes the synchronized frame data and splits it into training, validation, and test sets. The split is performed at the video tag level (e.g., all frames from `cegr02003_0001` go into the same set) using a configurable random seed for reproducibility. For each frame pair, it extracts images from the `.avi` files. Bounding boxes for IR images are derived from `.bbox_met` files, while bounding boxes for Visible images are interpolated based on the IR bounding boxes and target center coordinates from the AGT-JSON files. Finally, it generates `metadata.jsonl` annotation files for each data split.
 * **Usage Example:**
     ```bash
     python ATR Experiment/ATR data preprocessing/build_image_datasets.py \
@@ -112,4 +110,77 @@ We recommend placing the following scripts and the `config_utils.py` file into a
         └── test/
     ```
 
-### Waymo Open Dataset Preparation 📝
+### Training and Evaluation
+**1. ATR Condition Generation (VLM-based Scene Attributes)**
+If your model uses VLM-generated conditions for feature modulation (as described in the VLCFusion paper), run `create_conditions.py` first.
+
+* **Purpose:** Uses a Vision Language Model (e.g., GPT-4o via OpenAI API) to analyze images from the processed ATR dataset and generate boolean answers to a predefined set of questions about scene conditions. These are saved as JSON files.
+* **Location:** `ATR Experiment/create_conditions.py`
+* **Usage Example:** (Run for train, validation, and test splits of one modality, e.g., MWIR, as conditions are typically per scene instance).
+    ```bash
+    # For training set conditions (using MWIR images as input)
+    python "ATR Experiment/create_conditions.py" \
+        "/path/to/your/VLCFusion_ATR_Formatted_Dataset/mwir_vlc_dataset/train" \
+        --metadata_file_name "metadata.jsonl" \
+        --questions_file "ATR Experiment/conditions/preprocess/refined_conditions.json" \
+        --output_file "ATR Experiment/conditions/seen/vlm_train.json" \
+        --api_key "YOUR_OPENAI_API_KEY" # Or ensure OPENAI_API_KEY env var is set
+        # Add other args like --model, --max_workers as needed
+
+    # Repeat for validation and test sets, adjusting input/output paths.
+    # Example for validation:
+    # python "ATR Experiment/create_conditions.py" "/path/to/your/VLCFusion_ATR_Formatted_Dataset/mwir_vlc_dataset/val" --output_file "ATR Experiment/conditions/seen/vlm_val.json" ...
+    ```
+
+**2. ATR Training**
+Train the VLCFusion model on the prepared ATR dataset using `ensemble_trainer.py`.
+
+* **Location:** `ATR Experiment/ensemble_trainer.py`
+* **Purpose:** This script handles the training of the `MultimodalDetr` model (defined in `ATR Experiment/multimodal_detr.py`). It loads the processed IR and Visible datasets, corresponding VLM conditions, and uses Hugging Face `Trainer` for the training loop.
+* **Usage Example:**
+    ```bash
+    python "ATR Experiment/ensemble_trainer.py" \
+        --output_dir "ATR Experiment/outputs/VLCFusion_ATR_Run1" \
+        --visible_dataset_dir "/path/to/your/VLCFusion_ATR_Formatted_Dataset/visible_vlc_dataset" \
+        --ir_dataset_dir "/path/to/your/VLCFusion_ATR_Formatted_Dataset/mwir_vlc_dataset" \
+        --train_conditions_file "ATR Experiment/conditions/seen/vlm_train.json" \
+        --val_conditions_file "ATR Experiment/conditions/seen/vlm_val.json" \
+        --test_conditions_file "ATR Experiment/conditions/seen/vlm_test.json" \
+        --condition_indices_to_sample_str "16,13,1,11,15,19,18" \
+        --model_dir_1 "path/to/pretrained_ir_component_checkpoint_if_any" \
+        --model_dir_2 "path/to/pretrained_visible_component_checkpoint_if_any" \
+        --base_model_name "facebook/detr-resnet-50" \
+        --ensemble_method "CBAM_FiLM" \
+        --image_size 480 \
+        --num_classes 10 \
+        --per_device_train_batch_size 8 \
+        --gradient_accumulation_steps 2 \
+        --learning_rate 5e-5 \
+        --num_train_epochs 50 \
+        --save_strategy "epoch" \
+        --eval_strategy "epoch" \
+        --load_best_model_at_end True \
+        --metric_for_best_model "eval_map" \
+        --fp16 True \
+        --report_to "wandb" \
+        --run_name "VLCFusion_ATR_CBAM_FiLM_Run1" \
+        # Add other relevant ModelArguments, DataArguments, TrainingArguments as needed
+    ```
+* Ensure paths to pretrained components (`model_dir_1`, `model_dir_2`) are correct if you are initializing parts of `MultimodalDetr` from existing checkpoints. If training from scratch using the `base_model_name` for DETR backbones, these might point to the Hugging Face model identifier or be handled within `MultimodalDetr`.
+
+**3. ATR Evaluation**
+Evaluate your trained VLCFusion model using the provided Jupyter Notebook or a similar evaluation script.
+
+* **Location:** `ATR Experiment/test_ensemble.ipynb`
+* **Purpose:** To assess the trained model's performance on the ATR test set, calculating metrics like mAP.
+* **Usage:**
+    1.  Open and run the `ATR Experiment/test_ensemble.ipynb` notebook using Jupyter.
+    2.  Within the notebook, configure the path to your trained VLCFusion model checkpoint (usually found in the `output_dir` specified during training, e.g., `ATR Experiment/outputs/VLCFusion_ATR_Run1/checkpoint-XXXXX`).
+    3.  Set the paths to the preprocessed ATR test dataset (`mwir_vlc_dataset/test` and `visible_vlc_dataset/test`) and the VLM conditions for the test set (`ATR Experiment/conditions/seen/vlm_test.json`).
+    4.  Execute the cells to load the model and data, perform inference, and compute evaluation metrics.
+
+## Waymo Open Dataset 📝
+
+### Preparation
+
+### Training and Evaluation
