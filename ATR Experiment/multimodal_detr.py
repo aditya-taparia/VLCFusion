@@ -17,7 +17,7 @@ class MultimodalDetr(nn.Module):
     def __init__(self, model_name_1: str, model_name_2: str, config: AutoConfig, ensemble_method: str = "CBAM", n_conditions: int = 14):
         super().__init__()
         
-        if ensemble_method not in ["CBAM", "FusionSSD", "CBAM_FiLM", "FusionSSD_FiLM", "FusionSSD_SelfAttention", "LearnableAlign"]:
+        if ensemble_method not in ["CBAM", "FusionSSD", "CBAM_FiLM", "FusionSSD_FiLM", "FusionSSD_SelfAttention", "LearnableAlign", "VLCAM"]:
             raise NotImplementedError(f"Ensemble method {ensemble_method} not implemented")
         self.ensemble_method = ensemble_method
 
@@ -161,6 +161,19 @@ class MultimodalDetr(nn.Module):
             self.transform_layer = LearnableAlignTransformLayer(in_channels=in_channels, out_channels=out_channels)
             self.transform_queries = LearnableAlignTransformQueries(in_channels=in_channels, out_channels=out_channels)
         
+        elif self.ensemble_method == "VLCAM":
+            from mh_vlcam_utils import MHVLCAMTransformLayer, MHVLCAMTransformQueries
+            
+            in_channels = 512
+            out_channels = 256
+            cond_dim = n_conditions
+            r = 2
+            n_heads = 2
+            
+            self.transform_layer = MHVLCAMTransformLayer(in_channels=in_channels, out_channels=out_channels, cond_dim=cond_dim, r=r, n_heads=n_heads)
+            self.transform_queries = MHVLCAMTransformQueries(in_channels=in_channels, out_channels=out_channels , cond_dim=cond_dim, r=r, n_heads=n_heads)
+            
+        
     def forward( 
         self,
         pixel_values:torch.FloatTensor, 
@@ -177,7 +190,7 @@ class MultimodalDetr(nn.Module):
     ) -> Union[Tuple[torch.FloatTensor], DetrModelOutput]:
         
         # Get image_ids
-        if "FiLM" in self.ensemble_method.split("_"):
+        if "FiLM" in self.ensemble_method.split("_") or self.ensemble_method == "VLCAM":
             conditions = []
             for label in labels:
                 conditions.append(label["conditions"])
@@ -213,7 +226,7 @@ class MultimodalDetr(nn.Module):
         
         # Concatenate the feature maps
         feature_map = torch.cat((projected_feature_map_ir, projected_feature_map_rgb), dim=1)
-        if "FiLM" in self.ensemble_method.split("_"):
+        if "FiLM" in self.ensemble_method.split("_") or self.ensemble_method == "VLCAM":
             feature_map = self.transform_layer(feature_map, conditions_tensor)
         else:
             feature_map = self.transform_layer(feature_map)
@@ -222,7 +235,7 @@ class MultimodalDetr(nn.Module):
         object_queries_ir = object_queries_list_ir[-1]
         object_queries_rgb = object_queries_list_rgb[-1]
         object_queries = torch.cat((object_queries_ir, object_queries_rgb), dim=1)
-        if "FiLM" in self.ensemble_method.split("_"):
+        if "FiLM" in self.ensemble_method.split("_") or self.ensemble_method == "VLCAM":
             object_queries = self.transform_queries(object_queries, conditions_tensor)
         else:
             object_queries = self.transform_queries(object_queries)

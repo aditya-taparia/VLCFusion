@@ -6,7 +6,9 @@ from dataclasses import dataclass, field
 from functools import partial
 from typing import Any, Dict, List, Mapping, Optional, Tuple, Union
 
-import albumentations as A
+# import albumentations as A
+from torchvision.transforms import v2
+from torchvision import tv_tensors
 import numpy as np
 import torch
 from datasets import DatasetDict, concatenate_datasets, load_dataset
@@ -33,14 +35,14 @@ from multimodal_detr import MultimodalDetr # Make sure this import works in your
 @dataclass
 class ModelArguments:
     """Arguments pertaining to which model/config/tokenizer we are going to fine-tune from."""
-    model_dir_1: str = field(metadata={"help": "Path to the first pretrained model component (e.g., IR model checkpoint)."})
-    model_dir_2: str = field(metadata={"help": "Path to the second pretrained model component (e.g., Visible model checkpoint)."})
+    model_dir_1: str = field(default="models/45k_seen_ir/checkpoint-24550", metadata={"help": "Path to the first pretrained model component (e.g., IR model checkpoint)."})
+    model_dir_2: str = field(default="models/45k_seen_vis/checkpoint-24550", metadata={"help": "Path to the second pretrained model component (e.g., Visible model checkpoint)."})
     base_model_name: str = field(
         default="facebook/detr-resnet-50",
         metadata={"help": "Base DETR model name for image processor and initial config."}
     )
     ensemble_method: str = field(
-        default="CBAM_FiLM",
+        default="VLCAM",
         metadata={"help": "Method for ensembling/fusing the multimodal features."}
     )
     # Add any other model-specific hyperparameters here
@@ -48,8 +50,8 @@ class ModelArguments:
 @dataclass
 class DataArguments:
     """Arguments pertaining to what data we are going to input our model for training and eval."""
-    visible_dataset_dir: str = field(metadata={"help": "Path to the visible spectrum dataset directory (imagefolder structure)."})
-    ir_dataset_dir: str = field(metadata={"help": "Path to the infrared spectrum dataset directory (imagefolder structure)."})
+    visible_dataset_dir: str = field(default="/data/ataparia/Darpa_datasets/atr_dataset/visible_seen", metadata={"help": "Path to the visible spectrum dataset directory (imagefolder structure)."})
+    ir_dataset_dir: str = field(default="/data/ataparia/Darpa_datasets/atr_dataset/infrared_seen", metadata={"help": "Path to the infrared spectrum dataset directory (imagefolder structure)."})
     train_conditions_file: str = field(default="conditions/seen/vlm_train.json", metadata={"help": "Path to training conditions JSON."})
     val_conditions_file: str = field(default="conditions/seen/vlm_val.json", metadata={"help": "Path to validation conditions JSON."})
     test_conditions_file: str = field(default="conditions/seen/vlm_test.json", metadata={"help": "Path to test conditions JSON."})
@@ -150,121 +152,160 @@ def convert_bbox_yolo_to_pascal(boxes: torch.Tensor, image_size: Tuple[int, int]
     return boxes_converted
 
 # --- Data Transformation ---
-def _process_single_modality_for_transform(
-    image_id: Any, image: Any, objects: Dict[str, Any], transform: A.Compose
-) -> Tuple[np.ndarray, Dict[str, Any]]:
-    """Helper to apply transform to one image and its annotations."""
-    image_np = np.array(image.convert("RGB"))
-    # Ensure objects["bbox"] is a list of lists/tuples as expected by albumentations
-    bboxes = objects.get("bbox", [])
-    if not all(isinstance(b, (list, tuple)) for b in bboxes):
-        # This might happen if bbox is a single list for a single object.
-        # Albumentations expects a list of bboxes.
-        if isinstance(bboxes, list) and len(bboxes) == 4 and all(isinstance(n, (int,float)) for n in bboxes):
-             bboxes = [bboxes] # Wrap single bbox in a list
-        else: # If it's more complex or truly malformed, log and use empty
-            logging.warning(f"Image {image_id}: Malformed bboxes, attempting to use empty: {bboxes}")
-            bboxes = []
+# def _process_single_modality_for_transform(
+#     image_id: Any, image: Any, objects: Dict[str, Any], transform: A.Compose
+# ) -> Tuple[np.ndarray, Dict[str, Any]]:
+#     """Helper to apply transform to one image and its annotations."""
+#     image_np = np.array(image.convert("RGB"))
+#     # Ensure objects["bbox"] is a list of lists/tuples as expected by albumentations
+#     bboxes = objects.get("bbox", [])
+#     if not all(isinstance(b, (list, tuple)) for b in bboxes):
+#         # This might happen if bbox is a single list for a single object.
+#         # Albumentations expects a list of bboxes.
+#         if isinstance(bboxes, list) and len(bboxes) == 4 and all(isinstance(n, (int,float)) for n in bboxes):
+#              bboxes = [bboxes] # Wrap single bbox in a list
+#         else: # If it's more complex or truly malformed, log and use empty
+#             logging.warning(f"Image {image_id}: Malformed bboxes, attempting to use empty: {bboxes}")
+#             bboxes = []
 
 
-    categories = objects.get("category", [])
-    # Ensure categories match bboxes length if bboxes exist
-    if len(bboxes) > 0 and len(categories) != len(bboxes):
-        logging.warning(f"Image {image_id}: Mismatch between bbox count ({len(bboxes)}) and category count ({len(categories)}). Using categories up to bbox count or empty.")
-        categories = categories[:len(bboxes)] if categories else [0]*len(bboxes) # Default cat 0 if missing
+#     categories = objects.get("category", [])
+#     # Ensure categories match bboxes length if bboxes exist
+#     if len(bboxes) > 0 and len(categories) != len(bboxes):
+#         logging.warning(f"Image {image_id}: Mismatch between bbox count ({len(bboxes)}) and category count ({len(categories)}). Using categories up to bbox count or empty.")
+#         categories = categories[:len(bboxes)] if categories else [0]*len(bboxes) # Default cat 0 if missing
 
-    output = transform(image=image_np, bboxes=bboxes, category=categories)
+#     output = transform(image=image_np, bboxes=bboxes, category=categories)
     
-    formatted_annotations = format_image_annotations_as_coco(
-        str(image_id), output["category"], objects.get("area", [0.0] * len(output["bboxes"])), output["bboxes"]
-    ) # Ensure area matches output bbox count
-    return output["image"], formatted_annotations
+#     formatted_annotations = format_image_annotations_as_coco(
+#         str(image_id), output["category"], objects.get("area", [0.0] * len(output["bboxes"])), output["bboxes"]
+#     ) # Ensure area matches output bbox count
+#     return output["image"], formatted_annotations
 
 
 def augment_and_transform_batch_multimodal(
     examples: Mapping[str, Any],
-    transform: A.Compose,
+    # transform: A.Compose,
+    transform: v2.Compose,
     image_processor: AutoImageProcessor,
     all_conditions_data: Dict[str, Dict[str, Any]], # Combined conditions {split_name: conditions}
     current_split_name: str, # "train", "validation", or "test"
     indices_to_sample_conditions: Optional[np.ndarray],
     return_pixel_mask: bool = False,
 ) -> BatchFeature:
-    """Apply augmentations and format annotations for multimodal object detection."""
+    """Apply augmentations simultaneously to IR and Visible to maintain alignment."""
     
-    ir_images_processed, ir_annotations_processed = [], []
-    for img_id, img, objs in zip(examples["ir_image_id"], examples["ir_image"], examples["ir_objects"]):
-        proc_img, proc_ann = _process_single_modality_for_transform(img_id, img, objs, transform)
-        ir_images_processed.append(proc_img)
-        ir_annotations_processed.append(proc_ann)
-    
-    ir_transformed_batch = image_processor(
-        images=ir_images_processed, annotations=ir_annotations_processed, return_tensors="pt"
-    )
+    ir_images_processed = []
+    vis_images_processed = []
+    combined_labels = []
 
-    vis_images_processed, vis_annotations_processed = [], []
-    for img_id, img, objs in zip(examples["vis_image_id"], examples["vis_image"], examples["vis_objects"]):
-        proc_img, proc_ann = _process_single_modality_for_transform(img_id, img, objs, transform)
-        vis_images_processed.append(proc_img)
-        vis_annotations_processed.append(proc_ann)
+    for ir_img, vis_img, ir_objs, ir_id in zip(
+        examples["ir_image"], 
+        examples["vis_image"], 
+        examples["ir_objects"], 
+        examples["ir_image_id"]
+    ):
+        # 1. Force Size Alignment (Critical for Multimodal)
+        if ir_img.size != vis_img.size:
+            ir_img = ir_img.resize(vis_img.size)
 
-    vis_transformed_batch = image_processor(
-        images=vis_images_processed, annotations=vis_annotations_processed, return_tensors="pt"
-    )
-
-    # Combine pixel values (IR first, then Visible)
-    ir_pixel_values = ir_transformed_batch.pop("pixel_values")
-    vis_pixel_values = vis_transformed_batch.pop("pixel_values")
-    
-    # The model expects concatenated channels.
-    # Assuming ir_pixel_values and vis_pixel_values are [batch, 3, H, W]
-    # Resulting pixel_values will be [batch, 6, H, W]
-    combined_pixel_values = torch.cat([ir_pixel_values, vis_pixel_values], dim=1)
-    
-    # Start with IR batch results as the base, then add combined pixels and conditions
-    final_batch_result = ir_transformed_batch 
-    final_batch_result["pixel_values"] = combined_pixel_values
-
-    # Add conditions to labels
-    # Conditions data should be for the current split (train/val/test)
-    split_specific_conditions = all_conditions_data[current_split_name]
-
-    for label_dict in final_batch_result["labels"]:
-        image_id_tensor = label_dict['image_id']
-        image_id_str = str(image_id_tensor.item()) # image_id in conditions is string
+        # 2. Wrap inputs in TVTensors (This tells PyTorch what they are)
+        # Convert PIL -> Tensor
+        img_ir_tv = tv_tensors.Image(ir_img)
+        img_vis_tv = tv_tensors.Image(vis_img)
         
-        conditions_for_image = split_specific_conditions.get(image_id_str)
-        if conditions_for_image is None:
-            logging.warning(f"No conditions found for image_id {image_id_str} in {current_split_name} split. Using zeros.")
-            # Determine number of conditions from one valid entry or config
-            num_eff_cond = indices_to_sample_conditions.shape[0] if indices_to_sample_conditions is not None else len(next(iter(split_specific_conditions.values())))
-            conditions_tensor = torch.zeros(num_eff_cond, dtype=torch.float, device=image_id_tensor.device)
-
+        # Handle Bounding Boxes
+        raw_boxes = ir_objs.get("bbox", [])
+        if len(raw_boxes) > 0:
+            boxes_tv = tv_tensors.BoundingBoxes(
+                raw_boxes, 
+                format=tv_tensors.BoundingBoxFormat.XYWH, 
+                canvas_size=(ir_img.height, ir_img.width)
+            )
+            labels_tv = torch.tensor(ir_objs.get("category", []), dtype=torch.int64)
         else:
-            # Convert boolean list to float tensor (0.0 or 1.0)
+            # Empty placeholders
+            boxes_tv = tv_tensors.BoundingBoxes(
+                torch.zeros((0, 4)), 
+                format=tv_tensors.BoundingBoxFormat.XYWH, 
+                canvas_size=(ir_img.height, ir_img.width)
+            )
+            labels_tv = torch.tensor([], dtype=torch.int64)
+
+        # 3. APPLY THE TRANSFORM
+        # This one line transforms IR, Vis, and Boxes simultaneously & identically
+        output = transform({
+            "ir": img_ir_tv,
+            "vis": img_vis_tv,
+            "boxes": boxes_tv,
+            "labels": labels_tv
+        })
+        
+        out_ir = output["ir"]
+        out_vis = output["vis"]
+        out_boxes = output["boxes"]
+        out_labels = output["labels"]
+
+        # 4. Prepare Outputs
+        # Add a batch dimension for the image processor if needed, or stack manually
+        ir_images_processed.append(out_ir)
+        vis_images_processed.append(out_vis)
+        
+        # We must track the NEW image size after transform (in case random crop happened)
+        new_h, new_w = out_ir.shape[-2:]
+        
+        id_tensor = torch.tensor(int(ir_id), dtype=torch.int64)
+        size_tensor = torch.tensor([new_h, new_w], dtype=torch.int64)
+        
+        formatted_ann = {
+            "image_id": id_tensor,
+            "boxes": out_boxes, # Keep as tensor
+            "class_labels": out_labels,
+            "orig_size": size_tensor # Important: Update orig_size to new crop size
+        }
+        combined_labels.append(formatted_ann)
+
+    # 5. Stack into Batch
+    # Stack IR and Vis along channel dim (3+3 = 6 channels)
+    # Shape: (Batch, 6, H, W)
+    pixel_values = torch.cat([
+        torch.stack(ir_images_processed), 
+        torch.stack(vis_images_processed)
+    ], dim=1)
+    
+    final_batch = {"pixel_values": pixel_values, "labels": combined_labels}
+
+    # Add Conditions (Logic remains the same as your code)
+    split_specific_conditions = all_conditions_data[current_split_name]
+    for label_dict in final_batch["labels"]:
+        img_id_val = label_dict['image_id']
+        if hasattr(img_id_val, 'item'):
+            image_id_str = str(img_id_val.item())
+        else:
+            image_id_str = str(img_id_val)
+        conditions_for_image = split_specific_conditions.get(image_id_str)
+        
+        if conditions_for_image is None:
+            num_eff_cond = indices_to_sample_conditions.shape[0] if indices_to_sample_conditions is not None else 1
+            conditions_tensor = torch.zeros(num_eff_cond, dtype=torch.float)
+        else:
             if isinstance(conditions_for_image[0], bool):
-                conditions_tensor_full = torch.tensor(
-                    [1.0 if c else 0.0 for c in conditions_for_image],
-                    dtype=torch.float, device=image_id_tensor.device
-                )
-            else: # Assuming already numbers if not bool
-                conditions_tensor_full = torch.tensor(
-                    conditions_for_image, dtype=torch.float, device=image_id_tensor.device
-                )
+                conditions_tensor_full = torch.tensor([1.0 if c else 0.0 for c in conditions_for_image], dtype=torch.float)
+            else:
+                conditions_tensor_full = torch.tensor(conditions_for_image, dtype=torch.float)
             
             if indices_to_sample_conditions is not None:
-                # Ensure indices are 0-based for PyTorch tensor indexing
                 zero_based_indices = torch.from_numpy(indices_to_sample_conditions - 1).long()
                 conditions_tensor = conditions_tensor_full[zero_based_indices]
             else:
                 conditions_tensor = conditions_tensor_full
         
-        label_dict['conditions'] = conditions_tensor
-    
+        label_dict['conditions'] = conditions_tensor.to(pixel_values.device) # Ensure device match if needed later
+
     if not return_pixel_mask:
-        final_batch_result.pop("pixel_mask", None)
-        
-    return final_batch_result
+        final_batch.pop("pixel_mask", None)
+
+    return final_batch
 
 
 # --- Collate Function & Metrics ---
@@ -278,6 +319,101 @@ def collate_fn_multimodal(batch: List[BatchFeature]) -> Mapping[str, Union[torch
         collated_batch["pixel_mask"] = torch.stack([x["pixel_mask"] for x in batch])
     return collated_batch
 
+# @torch.no_grad()
+# def compute_detection_metrics(
+#     evaluation_results: EvalPrediction,
+#     image_processor: AutoImageProcessor,
+#     id2label: Mapping[int, str],
+#     threshold: float = 0.0,
+# ) -> Mapping[str, float]:
+#     predictions = evaluation_results.predictions
+#     targets_raw = evaluation_results.label_ids
+
+#     if isinstance(predictions, tuple):
+#         logits_all = predictions[1] 
+#         boxes_all = predictions[2]
+#     elif isinstance(predictions, dict):
+#         logits_all = predictions["logits"]
+#         boxes_all = predictions["pred_boxes"]
+#     else:
+#         # Fallback if structure is different (unlikely given your model code)
+#         logits_all = predictions[0]
+#         boxes_all = predictions[1]
+    
+#     processed_predictions, processed_targets = [], []
+    
+#     # 1. Process Targets
+#     for target in targets_raw:
+#         # Targets are already a list of dicts, so we iterate directly
+#         # Check for orig_size safety (converted to tensor in previous step)
+#         if "orig_size" not in target:
+#             img_h, img_w = 480, 480
+#         else:
+#             # It might be a tensor now, so .tolist() or direct access
+#             size_t = target["orig_size"]
+#             if hasattr(size_t, "tolist"):
+#                 img_h, img_w = size_t.tolist()
+#             else:
+#                 img_h, img_w = size_t
+
+#         boxes = torch.tensor(target["boxes"])
+#         # Convert [x,y,w,h] to [x1,y1,x2,y2] absolute
+#         boxes = convert_bbox_yolo_to_pascal(boxes, (img_h, img_w))
+#         labels = torch.tensor(target["class_labels"])
+#         processed_targets.append({"boxes": boxes, "labels": labels})
+    
+#     # 2. Process Predictions
+#     # Now we iterate over the SAMPLES (rows), not the tuple columns
+#     for i in range(len(logits_all)):
+#         batch_logits = torch.tensor(logits_all[i])
+#         batch_boxes = torch.tensor(boxes_all[i])
+        
+#         # Get target size for this specific image
+#         # targets_raw[i] corresponds to the i-th image
+#         if "orig_size" in targets_raw[i]:
+#             size_val = targets_raw[i]["orig_size"]
+#             if hasattr(size_val, "tolist"):
+#                 target_size = size_val.tolist()
+#             else:
+#                 target_size = size_val
+#         else:
+#             target_size = [480, 480]
+
+#         target_sizes = torch.tensor([target_size]) # Post-processor expects (1, 2) for single item
+
+#         # Wrap for processor
+#         output = ModelOutput(logits=batch_logits.unsqueeze(0), pred_boxes=batch_boxes.unsqueeze(0))
+        
+#         # Post-process
+#         post_processed_output = image_processor.post_process_object_detection(
+#             output, threshold=threshold, target_sizes=target_sizes
+#         )
+#         processed_predictions.extend(post_processed_output)
+    
+#     if not processed_targets or not processed_predictions:
+#         logging.warning("No valid targets or predictions to compute metrics.")
+#         return {"map": 0.0}
+
+
+#     # 3. Compute mAP
+#     metric = MeanAveragePrecision(box_format="xyxy", class_metrics=True)
+#     metric.update(processed_predictions, processed_targets)
+#     metrics = metric.compute()
+
+#     # Format Output
+#     final_metrics = {}
+#     for k, v in metrics.items():
+#         if k != "classes" and k != "map_per_class" and k != "mar_100_per_class":
+#              final_metrics[k] = round(v.item(), 4)
+
+#     # Per-class metrics
+#     if "map_per_class" in metrics:
+#         for class_id, class_map in zip(metrics["classes"], metrics["map_per_class"]):
+#             class_name = id2label[class_id.item()] if id2label else str(class_id.item())
+#             final_metrics[f"map_{class_name}"] = round(class_map.item(), 4)
+
+#     return final_metrics
+
 @torch.no_grad()
 def compute_detection_metrics(
     evaluation_results: EvalPrediction,
@@ -285,224 +421,220 @@ def compute_detection_metrics(
     id2label: Mapping[int, str],
     threshold: float = 0.0,
 ) -> Mapping[str, float]:
-    predictions, targets_raw = evaluation_results.predictions, evaluation_results.label_ids
-    
-    # predictions shape: (batch_size, num_queries, num_classes + 1) for logits, (batch_size, num_queries, 4) for boxes
-    # We expect predictions to be a tuple/list: (loss_dict, logits, boxes) or similar output from MultimodalDetr
-    # The original script indexes batch[1] and batch[2]
-    # Assuming predictions is a list where each element is [loss_info_or_None, logits_tensor, boxes_tensor]
+    # Because eval_do_concat_batches=False, these are lists of batches
+    # Predictions structure: [ (batch1_loss, batch1_logits, batch1_boxes), (batch2...), ... ]
+    # Targets structure: [ [img1_dict, img2_dict], [img3_dict...], ... ]
+    predictions_batches = evaluation_results.predictions
+    targets_batches = evaluation_results.label_ids
 
     processed_predictions, processed_targets = [], []
     
-    # Assuming targets_raw is a list of lists of dictionaries (batch of labels)
-    for batch_targets in targets_raw:
-        for target in batch_targets: # Each target is a dict for one image
-            # orig_size should be in the target dict if image_processor added it
-            # This was how the original script got target_sizes
-            if "orig_size" not in target:
-                 logging.error("orig_size missing from target labels. Cannot compute metrics accurately.")
-                 # Fallback or raise error - for now, skip this target for metric calculation
-                 continue
+    # Iterate over batches first (Old Code Logic)
+    for batch_pred, batch_targets in zip(predictions_batches, targets_batches):
+        
+        # 1. Unpack Predictions for this batch
+        # Based on your old code logic: Index 1=Logits, Index 2=Boxes
+        if isinstance(batch_pred, tuple):
+            b_logits = torch.tensor(batch_pred[1])
+            b_boxes = torch.tensor(batch_pred[2])
+        elif isinstance(batch_pred, dict):
+            b_logits = torch.tensor(batch_pred["logits"])
+            b_boxes = torch.tensor(batch_pred["pred_boxes"])
+        else:
+            # Fallback for object-like predictions
+            b_logits = torch.tensor(batch_pred.logits)
+            b_boxes = torch.tensor(batch_pred.pred_boxes)
             
-            img_h, img_w = target["orig_size"]
-            # Convert YOLO [0,1] to Pascal VOC absolute [xmin, ymin, xmax, ymax]
-            boxes = convert_bbox_yolo_to_pascal(torch.tensor(target["boxes"]), (img_h, img_w))
-            labels = torch.tensor(target["class_labels"])
-            processed_targets.append({"boxes": boxes, "labels": labels})
+        # 2. Iterate over images in this batch
+        for i, target in enumerate(batch_targets):
+            # --- Process Target ---
+            # Handle orig_size (it might be a tensor now due to our previous fix)
+            if "orig_size" in target:
+                sz = target["orig_size"]
+                if hasattr(sz, "tolist"):
+                    img_h, img_w = sz.tolist()
+                else:
+                    img_h, img_w = sz
+            else:
+                img_h, img_w = 480, 480
+            
+            t_boxes = torch.tensor(target["boxes"])
+            # Convert [x,y,w,h] to [x1,y1,x2,y2] absolute
+            t_boxes = convert_bbox_yolo_to_pascal(t_boxes, (img_h, img_w))
+            t_labels = torch.tensor(target["class_labels"])
+            processed_targets.append({"boxes": t_boxes, "labels": t_labels})
 
-    # Assuming 'predictions' is a list where each element corresponds to a batch's output
-    # And each batch output is a tuple/list like (None, logits, boxes) as implied by original script
-    for batch_prediction_output, batch_targets in zip(predictions, targets_raw):
-        # The model output needs to be structured as ModelOutput for post_process_object_detection
-        # Original script: batch_logits, batch_boxes = batch[1], batch[2]
-        # Ensure batch_prediction_output has this structure
-        if len(batch_prediction_output) < 3: # Check based on original indexing
-            logging.error("Unexpected prediction output structure. Skipping batch for metrics.")
-            continue
-        
-        logits_np, boxes_np = batch_prediction_output[1], batch_prediction_output[2]
-        model_output_for_postproc = ModelOutput(logits=torch.from_numpy(logits_np), pred_boxes=torch.from_numpy(boxes_np))
-        
-        target_sizes_for_batch = torch.tensor([t["orig_size"] for t in batch_targets if "orig_size" in t])
-        if target_sizes_for_batch.ndim == 1: # If only one image in batch and target_sizes is [H,W]
-            target_sizes_for_batch = target_sizes_for_batch.unsqueeze(0)
-        
-        if target_sizes_for_batch.size(0) == 0 and model_output_for_postproc.logits.size(0) > 0 :
-            # This can happen if all targets for this batch were skipped due to missing orig_size
-            logging.warning("No valid target sizes for a batch with predictions. Using inferred or placeholder sizes.")
-            # This is problematic. For now, we might have to skip post-processing this batch's predictions
-            # or try to infer target_sizes if possible (e.g., from image_processor if fixed size was used).
-            # A robust solution depends on how images are padded/resized.
-            # For now, let's assume fixed size if not available, though this is not ideal.
-            # Example: if all images are padded to data_args.image_size
-            # target_sizes_for_batch = torch.tensor([[data_args.image_size, data_args.image_size]] * model_output_for_postproc.logits.size(0))
-            # This is a HACK and needs verification based on actual preprocessing
-            continue # Skip this batch if target sizes are missing.
-
-        post_processed = image_processor.post_process_object_detection(
-            outputs=model_output_for_postproc,
-            threshold=threshold,
-            target_sizes=target_sizes_for_batch
-        )
-        processed_predictions.extend(post_processed)
+            # --- Process Prediction ---
+            # Extract the i-th row from the batch tensors
+            p_logits = b_logits[i]
+            p_boxes = b_boxes[i]
+            
+            # Post-process expects a batch, so we unsqueeze to make shape (1, ...)
+            target_sizes = torch.tensor([[img_h, img_w]])
+            output = ModelOutput(logits=p_logits.unsqueeze(0), pred_boxes=p_boxes.unsqueeze(0))
+            
+            post_processed = image_processor.post_process_object_detection(
+                output, threshold=threshold, target_sizes=target_sizes
+            )
+            processed_predictions.extend(post_processed)
     
     if not processed_targets or not processed_predictions:
         logging.warning("No valid targets or predictions to compute metrics.")
-        return {"map": 0.0, "map_50": 0.0, "map_75": 0.0, "map_small": 0.0, "map_medium": 0.0, "map_large": 0.0}
+        return {"map": 0.0}
 
+    # 3. Compute mAP
+    metric = MeanAveragePrecision(box_format="xyxy", class_metrics=True)
+    metric.update(processed_predictions, processed_targets)
+    metrics = metric.compute()
 
-    metric_calculator = MeanAveragePrecision(box_format="xyxy", class_metrics=True)
-    metric_calculator.update(processed_predictions, processed_targets)
-    computed_metrics = metric_calculator.compute()
-
+    # Format Output
     final_metrics = {}
-    for k, v in computed_metrics.items():
-        if k == "classes" or k.endswith("_per_class"):
-            continue
-        final_metrics[k] = round(v.item(), 4)
+    for k, v in metrics.items():
+        if k != "classes" and k != "map_per_class" and k != "mar_100_per_class":
+             final_metrics[k] = round(v.item(), 4)
 
-    if "map_per_class" in computed_metrics and "classes" in computed_metrics:
-        classes_ids = computed_metrics["classes"].tolist()
-        map_per_class_values = computed_metrics["map_per_class"].tolist()
-        mar_100_per_class_values = computed_metrics.get("mar_100_per_class", torch.zeros_like(computed_metrics["classes"])).tolist()
+    # Per-class metrics
+    if "map_per_class" in metrics:
+        for class_id, class_map in zip(metrics["classes"], metrics["map_per_class"]):
+            class_name = id2label[class_id.item()] if id2label else str(class_id.item())
+            final_metrics[f"map_{class_name}"] = round(class_map.item(), 4)
 
-        for class_id, class_map, class_mar in zip(classes_ids, map_per_class_values, mar_100_per_class_values):
-            class_name = id2label.get(class_id, f"class_{class_id}")
-            final_metrics[f"map_{class_name}"] = round(class_map, 4)
-            final_metrics[f"mar_100_{class_name}"] = round(class_mar, 4)
-            
     return final_metrics
 
 
-# --- Dataset Loading and Preparation Function ---
 def prepare_datasets(
     data_args: DataArguments, 
     image_processor: AutoImageProcessor, 
-    all_conditions: Dict[str, Dict[str, Any]], # Combined {split_name: conditions_dict}
+    all_conditions: Dict[str, Dict[str, Any]], 
     indices_to_sample_conditions: Optional[np.ndarray]
 ) -> DatasetDict:
-    """Loads, preprocesses, and combines visible and IR datasets."""
+    """Loads, preprocesses, and combines visible and IR datasets using original logic."""
     
-    # Define id2label and label2id based on num_classes or a fixed mapping
-    # Using fixed mapping from your script for now
-    categories_to_tgttype = {
-        0: 'PICKUP', 1: 'SUV', 2: 'BTR70', 3: 'BRDM2', 4: 'BMP2',
-        5: 'T72', 6: 'ZSU23', 7: '2S3', 8: 'MTLB', 9: 'D20',
-    } # Assuming T62 is indeed excluded as per your original comment
-    
-    # This part needs to be consistent with how model config is created
-    # id2label = {k: v for k, v in categories_to_tgttype.items() if k < data_args.num_classes}
-    # label2id = {v: k for k, v in id2label.items()}
-
+    # 1. Load Datasets (Assumes metadata.jsonl exists in folders, as per original code)
     logging.info(f"Loading visible dataset from: {data_args.visible_dataset_dir}")
-    vis_custom_data = load_dataset("imagefolder", data_dir=data_args.visible_dataset_dir, drop_labels=True)
-    # After load_dataset("imagefolder", ...), you need to load your actual annotations (objects)
-    # This part is critical and was missing. Imagefolder only gives 'image'.
-    # You need to load metadata.jsonl and merge it.
-    # For now, I'll assume the 'objects' column is somehow present or added in a subsequent step
-    # that was abstracted in the original script. This needs to be fixed for a runnable script.
-    # Placeholder: Manually add `image_id` and `objects` if not present.
-    # This is a major simplification and needs proper implementation based on your S4 output.
-    def add_metadata_placeholder(examples, idx, prefix):
-        # This function's logic depends heavily on how S4 saves data and how `imagefolder` interacts.
-        # Let's assume S4's output `metadata.jsonl` is somehow loaded and merged.
-        # The simplest way is to load from JSONL directly instead of "imagefolder"
-        # For now, just ensure the columns exist for the transform function.
-        examples[f"{prefix}_image_id"] = [f"{prefix}_{i}" for i in idx] # Dummy image_id
-        examples[f"{prefix}_objects"] = [{"bbox": [], "category": [], "area": []} for _ in idx] # Dummy objects
-        return examples
-
-    # This is a placeholder section. You should replace `load_dataset("imagefolder", ...)`
-    # with a proper loading mechanism that loads images AND your `metadata.jsonl` annotations.
-    # Example using `load_dataset("json", ...)` and then mapping to load images:
-    # vis_train_metadata = load_dataset("json", data_files=os.path.join(data_args.visible_dataset_dir, "train", "metadata.jsonl"))["train"]
-    # def load_image_from_metadata(example):
-    #     image_path = os.path.join(data_args.visible_dataset_dir, "train", "images", example["file_name"])
-    #     example["image"] = Image.open(image_path)
-    #     example["objects"] = example["objects"] # Assuming 'objects' is already in metadata.jsonl
-    #     return example
-    # vis_custom_data_train = vis_train_metadata.map(load_image_from_metadata)
-    # (Repeat for val/test and for IR dataset)
-    # This is a more realistic way to load your custom object detection data.
-    # The original script's use of `imagefolder` for object detection data with complex metadata is unusual
-    # unless there's a custom loader or specific directory structure not shown.
-
+    vis_custom_data = load_dataset("imagefolder", data_dir=data_args.visible_dataset_dir)
+    
     logging.info(f"Loading IR dataset from: {data_args.ir_dataset_dir}")
-    ir_custom_data = load_dataset("imagefolder", data_dir=data_args.ir_dataset_dir, drop_labels=True)
+    ir_custom_data = load_dataset("imagefolder", data_dir=data_args.ir_dataset_dir)
 
+    # 2. Sort and Shuffle (CRITICAL for alignment)
+    # We must ensure 'image_id' exists. If load_dataset didn't find it in metadata,
+    # we assume file_names align.
+    
+    def ensure_alignment_columns(dataset, prefix):
+        # If image_id is missing, use filename (without extension) as sort key
+        if "image_id" not in dataset["train"].column_names:
+            def add_filename_id(example):
+                return {"image_id": os.path.splitext(os.path.basename(example["image"].filename))[0]}
+            dataset = dataset.map(add_filename_id)
+        
+        # Sort and Shuffle with fixed seed
+        for split in dataset.keys():
+            dataset[split] = dataset[split].sort("image_id").shuffle(seed=42)
+            
+            # Rename columns to avoid collision during concatenation
+            # We rename EVERYTHING except 'image_id' used for sorting check (optional)
+            # but usually we just prefix everything.
+            dataset[split] = dataset[split].rename_columns(
+                {col: f"{prefix}_{col}" for col in dataset[split].column_names}
+            )
+        return dataset
 
-    # The following assumes vis_custom_data and ir_custom_data are DatasetDicts
-    # with "train", "validation", "test" splits and that they have compatible row counts after shuffling.
-    # Sorting by image_id and shuffling was in the original. Replicating shuffle.
-    # This requires an 'image_id' column, which `imagefolder` does not provide by default.
-    # You must add 'image_id' to your datasets after loading, e.g., from filenames.
-    # For example:
-    def add_image_id_from_filename(example, idx, prefix): # Added idx for unique IDs
-        filename = example['image'].filename # Path to image
-        base_name = os.path.splitext(os.path.basename(filename))[0]
-        example[f'{prefix}_image_id'] = base_name # Or a more robust ID
-        # Placeholder for objects, this needs to come from your metadata.jsonl
-        # This is a critical part that needs to be correctly implemented based on how S4_...
-        # script saves data and how you intend to load it.
-        # The original script's `examples["ir_objects"]` must be populated.
-        if f'{prefix}_objects' not in example:
-             example[f'{prefix}_objects'] = {'bbox': [], 'category': [], 'area': []} # Dummy
-        return example
+    vis_custom_data = ensure_alignment_columns(vis_custom_data, "vis")
+    ir_custom_data = ensure_alignment_columns(ir_custom_data, "ir")
 
-
+    # 3. Concatenate
     processed_splits = {}
     for split in ["train", "validation", "test"]:
         if split not in vis_custom_data or split not in ir_custom_data:
-            logging.warning(f"Split '{split}' not found in both datasets. Skipping this split.")
             continue
+            
+        # Verify alignment (sanity check)
+        if len(vis_custom_data[split]) != len(ir_custom_data[split]):
+             logging.warning(f"Length mismatch in {split}: Vis {len(vis_custom_data[split])} vs IR {len(ir_custom_data[split])}")
 
-        vis_split_data = vis_custom_data[split].map(add_image_id_from_filename, with_indices=True, fn_kwargs={"prefix": "vis"})
-        ir_split_data = ir_custom_data[split].map(add_image_id_from_filename, with_indices=True, fn_kwargs={"prefix": "ir"})
-        
-        # The original script sorted by 'image_id'. If 'image_id' is from filename, it might be string sort.
-        # Ensure that after adding image_id, the datasets can be meaningfully sorted and concatenated row-wise.
-        # This assumes that the Nth image in vis_split_data corresponds to Nth image in ir_split_data AFTER shuffling both with the same seed.
-        vis_split_data = vis_split_data.shuffle(seed=42) # Use a fixed seed for reproducibility
-        ir_split_data = ir_split_data.shuffle(seed=42) # Must use the same seed!
-
-        # Rename columns
-        vis_renamed = vis_split_data.rename_columns({col: f"vis_{col}" for col in vis_split_data.column_names if not col.startswith("vis_")})
-        ir_renamed = ir_split_data.rename_columns({col: f"ir_{col}" for col in ir_split_data.column_names if not col.startswith("ir_")})
-        
-        # Ensure same number of rows before concatenating
-        if len(vis_renamed) != len(ir_renamed):
-            logging.warning(f"Row count mismatch in '{split}' split: Visible ({len(vis_renamed)}) vs IR ({len(ir_renamed)}). Truncating to shorter length.")
-            min_len = min(len(vis_renamed), len(ir_renamed))
-            vis_renamed = vis_renamed.select(range(min_len))
-            ir_renamed = ir_renamed.select(range(min_len))
-
-        combined_split = concatenate_datasets([vis_renamed, ir_renamed], axis=1)
+        combined_split = concatenate_datasets([vis_custom_data[split], ir_custom_data[split]], axis=1)
         processed_splits[split] = combined_split
 
-    if not processed_splits:
-        raise ValueError("No dataset splits could be processed. Check data paths and split names.")
-        
     combined_dataset = DatasetDict(processed_splits)
 
-    # Setup augmentations
-    train_alb_transform = A.Compose([
-        A.Compose([
-            A.SmallestMaxSize(max_size=data_args.image_size, p=1.0),
-            A.RandomSizedBBoxSafeCrop(height=data_args.image_size, width=data_args.image_size, p=1.0),
-        ], p=0.2),
-        A.OneOf([
-            A.Blur(blur_limit=7, p=0.5), A.MotionBlur(blur_limit=7, p=0.5),
-            A.Defocus(radius=(1, 5), alias_blur=(0.1, 0.25), p=0.1),
+    # 4. Define Transforms (Same as your modified code)
+    additional_targets = {'image_vis': 'image'}
+    
+    # train_alb_transform = A.Compose([
+    #     A.Compose([
+    #         A.SmallestMaxSize(max_size=data_args.image_size, p=1.0),
+    #         A.RandomSizedBBoxSafeCrop(height=data_args.image_size, width=data_args.image_size, p=1.0),
+    #     ], p=0.2),
+    #     A.OneOf([
+    #         A.Blur(blur_limit=7, p=0.5), A.MotionBlur(blur_limit=7, p=0.5),
+    #         A.Defocus(radius=(1, 5), alias_blur=(0.1, 0.25), p=0.1),
+    #     ], p=0.1),
+    #     A.Perspective(p=0.1), A.HorizontalFlip(p=0.5),
+    #     A.RandomBrightnessContrast(p=0.5), A.HueSaturationValue(p=0.1),
+    # ], 
+    #     bbox_params=A.BboxParams(format="coco", label_fields=["category"], clip=True, min_area=1.0, min_visibility=0.3), 
+    #     additional_targets=additional_targets)
+
+    # eval_alb_transform = A.Compose(
+    #     [A.NoOp()], 
+    #     bbox_params=A.BboxParams(format="coco", label_fields=["category"], clip=True), 
+    #     additional_targets=additional_targets
+    # )
+    
+    # Define the complex training transform
+    train_torch_transform = v2.Compose([
+        # --- Resize & Crop (p=0.2) ---
+        # Albumentations: SmallestMaxSize -> RandomSizedBBoxSafeCrop
+        # Torchvision Equivalent: Resize short edge -> RandomCrop
+        v2.RandomChoice([
+            # Option A: Random Crop (20% chance based on your logic, but scaled to choice)
+            v2.Compose([
+                v2.Resize(size=data_args.image_size, antialias=True), # Resize short edge to 480
+                v2.RandomCrop(size=(data_args.image_size, data_args.image_size), pad_if_needed=True) # Crop to 480x480
+            ]),
+            # Option B: Standard Resize (80% chance) - Force to square
+            v2.Resize(size=(data_args.image_size, data_args.image_size), antialias=True) 
+        ], p=[0.2, 0.8]),
+
+        # --- Blurs (OneOf p=0.1) ---
+        # Albumentations: Blur, MotionBlur, Defocus
+        # Torchvision: We use GaussianBlur with different sigmas to approximate
+        v2.RandomApply([
+            v2.RandomChoice([
+                v2.GaussianBlur(kernel_size=7, sigma=(0.1, 2.0)), # Standard Blur
+                v2.GaussianBlur(kernel_size=7, sigma=(2.0, 5.0)), # Stronger (approx Motion)
+            ])
         ], p=0.1),
-        A.Perspective(p=0.1), A.HorizontalFlip(p=0.5),
-        A.RandomBrightnessContrast(p=0.5), A.HueSaturationValue(p=0.1),
-    ], bbox_params=A.BboxParams(format="coco", label_fields=["category"], clip=True, min_area=1.0, min_visibility=0.3))
 
-    eval_alb_transform = A.Compose(
-        [A.NoOp()], bbox_params=A.BboxParams(format="coco", label_fields=["category"], clip=True)
-    )
+        # --- Geometry ---
+        v2.RandomPerspective(distortion_scale=0.1, p=0.1),
+        v2.RandomHorizontalFlip(p=0.5),
 
-    # Apply transforms to datasets
+        # --- Color (Brightness/Contrast p=0.5) ---
+        v2.RandomApply([
+            v2.ColorJitter(brightness=0.2, contrast=0.2)
+        ], p=0.5),
+
+        # --- Color (Hue/Sat p=0.1) ---
+        v2.RandomApply([
+            v2.ColorJitter(hue=0.1, saturation=0.1)
+        ], p=0.1),
+
+        # --- Final Formatting ---
+        # Ensure everything is a float tensor [0.0, 1.0] and boxes are valid
+        v2.ToDtype(torch.float32, scale=True),
+        v2.ClampBoundingBoxes(),    # Clip boxes to image edges
+        v2.SanitizeBoundingBoxes(), # Remove boxes that are too small or invisible
+    ])
+
+    # Define the eval transform (Just formatting)
+    eval_torch_transform = v2.Compose([
+        v2.Resize(size=(data_args.image_size, data_args.image_size), antialias=True),
+        v2.ToDtype(torch.float32, scale=True),
+    ])
+
+    # 5. Apply Transforms
     transform_kwargs_base = {
         "image_processor": image_processor,
         "all_conditions_data": all_conditions,
@@ -510,23 +642,60 @@ def prepare_datasets(
     }
     
     combined_dataset["train"] = combined_dataset["train"].with_transform(
-        partial(augment_and_transform_batch_multimodal, transform=train_alb_transform, current_split_name="train", **transform_kwargs_base)
+        partial(augment_and_transform_batch_multimodal, transform=train_torch_transform, current_split_name="train", **transform_kwargs_base)
     )
     if "validation" in combined_dataset:
         combined_dataset["validation"] = combined_dataset["validation"].with_transform(
-            partial(augment_and_transform_batch_multimodal, transform=eval_alb_transform, current_split_name="validation", **transform_kwargs_base)
+            partial(augment_and_transform_batch_multimodal, transform=eval_torch_transform, current_split_name="validation", **transform_kwargs_base)
         )
     if "test" in combined_dataset:
         combined_dataset["test"] = combined_dataset["test"].with_transform(
-            partial(augment_and_transform_batch_multimodal, transform=eval_alb_transform, current_split_name="test", **transform_kwargs_base)
+            partial(augment_and_transform_batch_multimodal, transform=eval_torch_transform, current_split_name="test", **transform_kwargs_base)
         )
         
     return combined_dataset
 
 # --- Main Function ---
 def main():
+    default_args = [
+        "--output_dir", "model/45k_cbam_fusion_7_cond_fusion",
+        "--run_name", "45k_cbam_fusion_7_cond_fusion",
+        
+        # Training Strategy
+        "--num_train_epochs", "100",
+        "--per_device_train_batch_size", "128",
+        "--gradient_accumulation_steps", "8",
+        "--learning_rate", "5e-5",
+        "--lr_scheduler_type", "cosine",
+        "--weight_decay", "1e-4",
+        "--max_grad_norm", "0.01",
+        # "--fp16", "False", # Removed: Default is already False. Adding "False" might break parsing.
+        
+        # Evaluation & Saving
+        "--metric_for_best_model", "eval_map",
+        "--greater_is_better", "True",
+        "--load_best_model_at_end", "True",
+        "--eval_strategy", "epoch",
+        "--save_strategy", "epoch",
+        "--save_total_limit", "5",
+        "--logging_steps", "100",
+        "--report_to", "wandb",
+        
+        # Data & Model Processing
+        "--remove_unused_columns", "False",
+        "--eval_do_concat_batches", "False",
+        "--do_train", # Presence of flag = True
+        "--do_eval",  # Presence of flag = True
+        
+        "--dataloader_num_workers", "16",  # This is the most important setting
+        "--dataloader_pin_memory", "True",
+    ]
+    
+    import sys
+    combined_args = default_args + sys.argv[1:]
+    
     parser = HfArgumentParser((ModelArguments, DataArguments, TrainingArguments))
-    model_args, data_args, training_args = parser.parse_args_into_dataclasses()
+    model_args, data_args, training_args = parser.parse_args_into_dataclasses(args=combined_args)
 
     # Setup logging
     logging.basicConfig(
@@ -598,8 +767,8 @@ def main():
     # Initialize model
     # Ensure MultimodalDetr class can accept n_conditions
     model = MultimodalDetr(
-        model_dir_1=model_args.model_dir_1,
-        model_dir_2=model_args.model_dir_2,
+        model_name_1=model_args.model_dir_1,
+        model_name_2=model_args.model_dir_2,
         config=model_config, # Pass the updated config
         ensemble_method=model_args.ensemble_method,
         n_conditions=n_conditions_eff # Pass the effective number of conditions
@@ -620,12 +789,6 @@ def main():
 
 
     # Prepare datasets
-    # CRITICAL NOTE: The following `prepare_datasets` call assumes that `load_dataset("imagefolder", ...)`
-    # correctly loads your object detection annotations (`image_id`, `image`, `objects`).
-    # This is often NOT the case by default. You likely need to replace the `imagefolder` loading
-    # with loading from your `metadata.jsonl` files and then mapping to load images.
-    # The current placeholder `add_image_id_from_filename` and dummy objects in `prepare_datasets`
-    # MUST BE REPLACED with your actual data loading logic for object detection annotations.
     try:
         combined_dataset = prepare_datasets(data_args, image_processor, all_conditions_for_transform, indices_to_sample_arr)
     except Exception as e:
@@ -661,7 +824,7 @@ def main():
     if "wandb" in training_args.report_to:
         try:
             import wandb
-            wandb.init(project="ECAI-ATR", entity="EDCR", name=training_args.run_name, config=vars(training_args)) # Add model_args, data_args to config if desired
+            wandb.init(project="VLCFusion-ATR", entity="EDCR", name=training_args.run_name, config=vars(training_args)) # Add model_args, data_args to config if desired
         except ImportError:
             logger.warning("wandb report_to specified but wandb is not installed. Skipping wandb setup.")
 
@@ -701,5 +864,5 @@ if __name__ == "__main__":
     # Example: CUDA_VISIBLE_DEVICES=1 python your_script_name.py ...
     # If you must set it in script, do it before any torch imports if possible,
     # but external is preferred for flexibility.
-    # os.environ["CUDA_VISIBLE_DEVICES"] = "1" # Original placement
+    os.environ["CUDA_VISIBLE_DEVICES"] = "1" # Original placement
     main()

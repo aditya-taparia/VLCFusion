@@ -1,0 +1,1 @@
+python ./ensemble_trainer.py --output_dir "./models/45k_vlc_fusion_7_cond_fusion" --run_name "45k_vlc_fusion_7_cond_fusion"  --ensemble_method "VLCAM" 
