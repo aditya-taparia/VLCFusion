@@ -17,19 +17,20 @@ class MultimodalDetr(nn.Module):
     def __init__(self, model_name_1: str, model_name_2: str, config: AutoConfig, ensemble_method: str = "CBAM", n_conditions: int = 14):
         super().__init__()
         
-        if ensemble_method not in ["CBAM", "FusionSSD", "CBAM_FiLM", "FusionSSD_FiLM", "FusionSSD_SelfAttention", "LearnableAlign", "VLCAM"]:
+        if ensemble_method not in ["CBAM", "FusionSSD", "CBAM_FiLM", "FusionSSD_FiLM", "FusionSSD_SelfAttention", "LearnableAlign", "VLCAM", "VLC", "CGB", "VLCA", "VLCA_Cross"]:
             raise NotImplementedError(f"Ensemble method {ensemble_method} not implemented")
         self.ensemble_method = ensemble_method
 
         self.config = config
 
-        model_ir  = AutoModelForObjectDetection.from_pretrained(model_name_1, config=self.config, ignore_mismatched_sizes=True)
-        model_rgb = AutoModelForObjectDetection.from_pretrained(model_name_2, config=self.config, ignore_mismatched_sizes=True)
+        model_ir  = AutoModelForObjectDetection.from_pretrained(model_name_1, config=self.config, ignore_mismatched_sizes=True, low_cpu_mem_usage=False)
+        model_rgb = AutoModelForObjectDetection.from_pretrained(model_name_2, config=self.config, ignore_mismatched_sizes=True, low_cpu_mem_usage=False)
         
         # Get components from the models
         self.backbone_ir = model_ir.model.backbone
         self.input_projection_ir = model_ir.model.input_projection
         
+        # NOTE: Freezed the backbone and input projection of the IR model
         for module in [
             self.backbone_ir,
             self.input_projection_ir
@@ -41,6 +42,7 @@ class MultimodalDetr(nn.Module):
         self.backbone_rgb = model_rgb.model.backbone
         self.input_projection_rgb = model_rgb.model.input_projection
         
+        # NOTE: Freezed the backbone and input projection of the RGB model
         for module in [
             self.backbone_rgb,
             self.input_projection_rgb
@@ -172,7 +174,51 @@ class MultimodalDetr(nn.Module):
             
             self.transform_layer = MHVLCAMTransformLayer(in_channels=in_channels, out_channels=out_channels, cond_dim=cond_dim, r=r, n_heads=n_heads)
             self.transform_queries = MHVLCAMTransformQueries(in_channels=in_channels, out_channels=out_channels , cond_dim=cond_dim, r=r, n_heads=n_heads)
+        
+        elif self.ensemble_method == "VLC":
+            from vlc_utils import VLCTransformLayer, VLCTransformQueries
             
+            in_channels = 512
+            out_channels = 256
+            cond_dim = n_conditions
+            r = 2
+            n_heads = 2
+            
+            self.transform_layer = VLCTransformLayer(in_channels=in_channels, out_channels=out_channels, cond_dim=cond_dim, r=r, n_heads=n_heads)
+            self.transform_queries = VLCTransformQueries(in_channels=in_channels, out_channels=out_channels, cond_dim=cond_dim, r=r, n_heads=n_heads)
+        
+        elif self.ensemble_method == "CGB":
+            from cgb_utils import CGBTransformLayer, CGBTransformQueries
+            
+            in_channels = 512
+            out_channels = 256
+            cond_dim = n_conditions
+            r = 4
+            
+            self.transform_layer = CGBTransformLayer(in_channels=in_channels, out_channels=out_channels, cond_dim=cond_dim, r=r)
+            self.transform_queries = CGBTransformQueries(in_channels=in_channels, out_channels=out_channels, cond_dim=cond_dim, r=r)
+        
+        elif self.ensemble_method == "VLCA":
+            from vlca_utils import VLCATransformLayer, VLCATransformQueries
+            
+            in_channels = 512
+            out_channels = 256
+            cond_dim = n_conditions
+            r = 4
+            
+            self.transform_layer = VLCATransformLayer(in_channels=in_channels, out_channels=out_channels, cond_dim=cond_dim, r=r)
+            self.transform_queries = VLCATransformQueries(in_channels=in_channels, out_channels=out_channels, cond_dim=cond_dim, r=r)
+        
+        elif self.ensemble_method == "VLCA_Cross":
+            from vlca_utils import VLCACrossTransformLayer, VLCACrossTransformQueries
+            
+            in_channels = 512
+            out_channels = 256
+            cond_dim = n_conditions
+            r = 4
+            
+            self.transform_layer = VLCACrossTransformLayer(in_channels=in_channels, out_channels=out_channels, cond_dim=cond_dim, r=r)
+            self.transform_queries = VLCACrossTransformQueries(in_channels=in_channels, out_channels=out_channels, cond_dim=cond_dim, r=r)
         
     def forward( 
         self,
@@ -190,17 +236,22 @@ class MultimodalDetr(nn.Module):
     ) -> Union[Tuple[torch.FloatTensor], DetrModelOutput]:
         
         # Get image_ids
-        if "FiLM" in self.ensemble_method.split("_") or self.ensemble_method == "VLCAM":
-            conditions = []
-            for label in labels:
-                conditions.append(label["conditions"])
-            # print("Conditions:", conditions)
+        if "FiLM" in self.ensemble_method.split("_") or self.ensemble_method in ["VLCAM", "VLC", "CGB", "VLCA", "VLCA_Cross"]:
+            # conditions = []
+            # for label in labels:
+            #     conditions.append(label["conditions"])
+            # # print("Conditions:", conditions)
 
-            conditions_tensor_list = []
-            for condition in conditions:
-                condition_tensor = torch.tensor(condition, dtype=torch.float, device=self.device)
-                conditions_tensor_list.append(condition_tensor)
-            conditions_tensor = torch.stack(conditions_tensor_list, dim=0)
+            # conditions_tensor_list = []
+            # for condition in conditions:
+            #     condition_tensor = torch.tensor(condition, dtype=torch.float, device=self.device)
+            #     conditions_tensor_list.append(condition_tensor)
+            # conditions_tensor = torch.stack(conditions_tensor_list, dim=0)
+            
+            conditions_tensor = torch.stack(
+                [label["conditions"].detach().clone().to(dtype=torch.float, device=self.device) for label in labels],
+                dim=0
+            )
         
 
         ir_pixel_values  = pixel_values[:, :3, ...]   # first three channels
@@ -226,7 +277,7 @@ class MultimodalDetr(nn.Module):
         
         # Concatenate the feature maps
         feature_map = torch.cat((projected_feature_map_ir, projected_feature_map_rgb), dim=1)
-        if "FiLM" in self.ensemble_method.split("_") or self.ensemble_method == "VLCAM":
+        if "FiLM" in self.ensemble_method.split("_") or self.ensemble_method in ["VLCAM", "VLC", "CGB", "VLCA", "VLCA_Cross"]:
             feature_map = self.transform_layer(feature_map, conditions_tensor)
         else:
             feature_map = self.transform_layer(feature_map)
@@ -235,7 +286,7 @@ class MultimodalDetr(nn.Module):
         object_queries_ir = object_queries_list_ir[-1]
         object_queries_rgb = object_queries_list_rgb[-1]
         object_queries = torch.cat((object_queries_ir, object_queries_rgb), dim=1)
-        if "FiLM" in self.ensemble_method.split("_") or self.ensemble_method == "VLCAM":
+        if "FiLM" in self.ensemble_method.split("_") or self.ensemble_method in ["VLCAM", "VLC", "CGB", "VLCA", "VLCA_Cross"]:
             object_queries = self.transform_queries(object_queries, conditions_tensor)
         else:
             object_queries = self.transform_queries(object_queries)

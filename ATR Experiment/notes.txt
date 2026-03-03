@@ -1,1 +1,3 @@
-python ./ensemble_trainer.py --output_dir "./models/45k_vlc_fusion_7_cond_fusion" --run_name "45k_vlc_fusion_7_cond_fusion"  --ensemble_method "VLCAM" 
+python ./ensemble_trainer.py --output_dir "./models/45k_vlc_fusion_7_cond_fusion" --run_name "45k_vlc_fusion_7_cond_fusion"  --ensemble_method "VLC" 
+
+python ./ensemble_trainer.py --output_dir "./models/45k_vlca_fusion_7_cond_fusion_2phase" --run_name "45k_vlca_fusion_7_cond_fusion_2phase"  --ensemble_method "VLCA_Cross"  --phase1_epochs 25 --phase1_lr 5e-5 --phase2_lr 1e-5  --fusion_lr_multiplier 2.0 --unfreeze_backbones_epoch 25 --backbone_lr_multiplier 0.1
