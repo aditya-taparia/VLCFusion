@@ -20,7 +20,6 @@ from transformers import (
     AutoImageProcessor,
     HfArgumentParser,
     Trainer,
-    TrainerCallback,
     TrainingArguments,
 )
 from transformers.image_processing_utils import BatchFeature
@@ -65,36 +64,11 @@ class DataArguments:
 
 @dataclass
 class FusionTrainingArguments:
-    """Arguments for phased training: epoch-based LR control and gradient freeze/unfreeze."""
+    """Arguments for fusion training: per-group LR multiplier for fusion layers only (backbones stay frozen)."""
 
-    # --- Phase-based LR control ---
-    phase1_epochs: int = field(
-        default=0,
-        metadata={"help": "Number of epochs for phase 1. 0 = single-phase (no switching)."},
-    )
-    phase1_lr: Optional[float] = field(
-        default=None,
-        metadata={"help": "Constant LR during phase 1. None = use TrainingArguments.learning_rate."},
-    )
-    phase2_lr: Optional[float] = field(
-        default=None,
-        metadata={"help": "Constant LR during phase 2. None = use TrainingArguments.learning_rate."},
-    )
-
-    # --- Per-group LR multipliers ---
     fusion_lr_multiplier: float = field(
         default=1.0,
         metadata={"help": "LR multiplier for fusion layers (transform_layer / transform_queries)."},
-    )
-    backbone_lr_multiplier: float = field(
-        default=0.1,
-        metadata={"help": "LR multiplier for backbone layers once unfrozen."},
-    )
-
-    # --- Gradient control ---
-    unfreeze_backbones_epoch: int = field(
-        default=-1,
-        metadata={"help": "Epoch at which to unfreeze backbone + input-projection parameters. -1 = never."},
     )
 
 # --- Global Constants & Mappings (derived from DataArguments or fixed) ---
@@ -701,101 +675,12 @@ def prepare_datasets(
         
     return combined_dataset
 
-# --- Phased Training ---
-
-class PhasedTrainingCallback(TrainerCallback):
-    """Handles epoch-based LR switching and backbone unfreezing.
-
-    LR behaviour:
-      * ``phase1_epochs == 0``  →  the HF cosine scheduler runs unmodified.
-      * ``phase1_epochs > 0``   →  cosine decay runs over the FULL training.
-        At the phase boundary the scheduler's ``base_lrs`` are swapped from
-        ``phase1_lr`` to ``phase2_lr`` so cosine decay continues from the
-        new base for the remaining steps.
-
-    Gradient behaviour:
-      * Backbones start frozen (set in MultimodalDetr.__init__).
-      * At epoch ``unfreeze_backbones_epoch`` they are unfrozen and their
-        ``initial_lr`` is set so the scheduler begins decaying them.
-    """
-
-    def __init__(self, fusion_args: FusionTrainingArguments):
-        super().__init__()
-        self.fa = fusion_args
-        self._backbones_unfrozen = False
-        self._phase_switched = False
-
-    def on_epoch_begin(self, args, state, control, model=None,
-                       optimizer=None, lr_scheduler=None, **kwargs):
-        epoch = int(state.epoch) if state.epoch is not None else 0
-        fa = self.fa
-        need_scheduler_update = False
-
-        # --- 1. Gradient control: unfreeze backbones ---
-        if (not self._backbones_unfrozen
-                and fa.unfreeze_backbones_epoch >= 0
-                and epoch >= fa.unfreeze_backbones_epoch):
-            count = 0
-            for name, param in model.named_parameters():
-                if "backbone" in name or "input_projection" in name:
-                    param.requires_grad = True
-                    count += 1
-            self._backbones_unfrozen = True
-            need_scheduler_update = True
-            logging.getLogger(__name__).info(
-                f"Epoch {epoch}: unfroze {count} backbone/input_projection params"
-            )
-
-        # --- 2. LR phase transition ---
-        if (not self._phase_switched
-                and fa.phase1_epochs > 0
-                and epoch >= fa.phase1_epochs
-                and optimizer is not None):
-            self._phase_switched = True
-            need_scheduler_update = True
-            logging.getLogger(__name__).info(
-                f"Epoch {epoch}: switching to phase 2 LR"
-            )
-
-        # --- 3. Update scheduler base_lrs (single update for both events) ---
-        if need_scheduler_update and optimizer is not None:
-            if fa.phase1_epochs > 0:
-                base_lr = ((fa.phase2_lr if fa.phase2_lr is not None else args.learning_rate)
-                           if self._phase_switched
-                           else (fa.phase1_lr if fa.phase1_lr is not None else args.learning_rate))
-            else:
-                base_lr = args.learning_rate
-
-            fusion_lr = base_lr * fa.fusion_lr_multiplier
-            bb_lr = base_lr * fa.backbone_lr_multiplier if self._backbones_unfrozen else 0.0
-
-            for group in optimizer.param_groups:
-                gname = group.get("group_name", "other")
-                if gname == "backbone":
-                    group["initial_lr"] = bb_lr
-                elif gname == "fusion":
-                    group["initial_lr"] = fusion_lr
-                else:
-                    group["initial_lr"] = base_lr
-
-            if lr_scheduler is not None and hasattr(lr_scheduler, "base_lrs"):
-                lr_scheduler.base_lrs = [
-                    g["initial_lr"] for g in optimizer.param_groups
-                ]
-
-            logging.getLogger(__name__).info(
-                f"Epoch {epoch}: scheduler base_lrs updated — "
-                f"other={base_lr}, fusion={fusion_lr}, backbone={bb_lr}"
-            )
-
+# --- Fusion Training (fusion LR multiplier only; backbones stay frozen) ---
 
 class MultimodalTrainer(Trainer):
     """Trainer subclass that creates separate optimizer param-groups for
-    backbone, fusion, and other parameters so the PhasedTrainingCallback
-    can target them independently.
-
-    Falls back to the default Trainer behaviour when no custom settings are
-    requested.
+    fusion vs other parameters when fusion_lr_multiplier != 1.0.
+    Backbone parameters are never included (stay frozen).
     """
 
     def __init__(self, fusion_args: Optional[FusionTrainingArguments] = None, **kwargs):
@@ -807,28 +692,18 @@ class MultimodalTrainer(Trainer):
             return self.optimizer
 
         fa = self.fusion_args
-        needs_custom = (
-            fa.phase1_epochs > 0
-            or fa.fusion_lr_multiplier != 1.0
-            or fa.unfreeze_backbones_epoch >= 0
-        )
-        if not needs_custom:
+        if fa.fusion_lr_multiplier == 1.0:
             return super().create_optimizer()
 
         model = self.model
         base_lr = self.args.learning_rate
-        if fa.phase1_epochs > 0 and fa.phase1_lr is not None:
-            base_lr = fa.phase1_lr
-
         backbone_prefixes = (
             "backbone_ir", "input_projection_ir",
             "backbone_rgb", "input_projection_rgb",
         )
         fusion_prefixes = ("transform_layer", "transform_queries")
-        include_backbone = fa.unfreeze_backbones_epoch >= 0
 
         groups: Dict[str, list] = {
-            "backbone_decay": [], "backbone_no_decay": [],
             "fusion_decay": [],   "fusion_no_decay": [],
             "other_decay": [],    "other_no_decay": [],
         }
@@ -838,10 +713,8 @@ class MultimodalTrainer(Trainer):
             is_fusion = any(name.startswith(p) for p in fusion_prefixes)
 
             if is_backbone:
-                if not include_backbone:
-                    continue
-                prefix = "backbone"
-            elif is_fusion:
+                continue  # never train backbone
+            if is_fusion:
                 prefix = "fusion"
             else:
                 if not param.requires_grad:
@@ -855,10 +728,6 @@ class MultimodalTrainer(Trainer):
         fusion_lr = base_lr * fa.fusion_lr_multiplier
 
         optimizer_grouped = []
-        if groups["backbone_decay"]:
-            optimizer_grouped.append({"params": groups["backbone_decay"],    "lr": 0.0,       "weight_decay": wd,  "group_name": "backbone"})
-        if groups["backbone_no_decay"]:
-            optimizer_grouped.append({"params": groups["backbone_no_decay"], "lr": 0.0,       "weight_decay": 0.0, "group_name": "backbone"})
         if groups["fusion_decay"]:
             optimizer_grouped.append({"params": groups["fusion_decay"],      "lr": fusion_lr,  "weight_decay": wd,  "group_name": "fusion"})
         if groups["fusion_no_decay"]:
@@ -883,9 +752,10 @@ def main():
         "--per_device_train_batch_size", "128",
         "--gradient_accumulation_steps", "8",
         "--learning_rate", "5e-5",
+        "--warmup_ratio", "0.1",
         "--lr_scheduler_type", "cosine",
         "--weight_decay", "1e-4",
-        "--max_grad_norm", "0.01",
+        "--max_grad_norm", "1.0",
         # "--fp16", "False", # Removed: Default is already False. Adding "False" might break parsing.
         
         # Evaluation & Saving
@@ -1028,8 +898,6 @@ def main():
     if training_args.do_eval and "validation" not in combined_dataset:
         raise ValueError("Evaluation is enabled but no 'validation' dataset is available.")
 
-    phased_callback = PhasedTrainingCallback(fusion_args)
-
     trainer = MultimodalTrainer(
         fusion_args=fusion_args,
         model=model,
@@ -1039,7 +907,6 @@ def main():
         tokenizer=image_processor, # For some internal HuggingFace checks
         compute_metrics=eval_metrics_fn_with_args,
         data_collator=collate_fn_multimodal,
-        callbacks=[phased_callback],
     )
 
     # WandB setup (from your script)

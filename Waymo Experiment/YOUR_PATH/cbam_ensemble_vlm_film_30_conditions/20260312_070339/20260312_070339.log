@@ -1,0 +1,790 @@
+2026/03/12 07:03:39 - mmengine - INFO - 
+------------------------------------------------------------
+System environment:
+    sys.platform: linux
+    Python: 3.10.19 (main, Oct 21 2025, 16:43:05) [GCC 11.2.0]
+    CUDA available: True
+    MUSA available: False
+    numpy_random_seed: 885031094
+    GPU 0: NVIDIA H100 NVL
+    CUDA_HOME: /data/ataparia/conda/envs/waymo
+    NVCC: Cuda compilation tools, release 13.2, V13.2.51
+    GCC: gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
+    PyTorch: 2.1.2+cu118
+    PyTorch compiling details: PyTorch built with:
+  - GCC 9.3
+  - C++ Version: 201703
+  - Intel(R) oneAPI Math Kernel Library Version 2022.2-Product Build 20220804 for Intel(R) 64 architecture applications
+  - Intel(R) MKL-DNN v3.1.1 (Git Hash 64f6bcbcbab628e96f33a62c3e975f8535a7bde4)
+  - OpenMP 201511 (a.k.a. OpenMP 4.5)
+  - LAPACK is enabled (usually provided by MKL)
+  - NNPACK is enabled
+  - CPU capability usage: AVX512
+  - CUDA Runtime 11.8
+  - NVCC architecture flags: -gencode;arch=compute_50,code=sm_50;-gencode;arch=compute_60,code=sm_60;-gencode;arch=compute_70,code=sm_70;-gencode;arch=compute_75,code=sm_75;-gencode;arch=compute_80,code=sm_80;-gencode;arch=compute_86,code=sm_86;-gencode;arch=compute_37,code=sm_37;-gencode;arch=compute_90,code=sm_90
+  - CuDNN 8.7
+  - Magma 2.6.1
+  - Build settings: BLAS_INFO=mkl, BUILD_TYPE=Release, CUDA_VERSION=11.8, CUDNN_VERSION=8.7.0, CXX_COMPILER=/opt/rh/devtoolset-9/root/usr/bin/c++, CXX_FLAGS= -D_GLIBCXX_USE_CXX11_ABI=0 -fabi-version=11 -fvisibility-inlines-hidden -DUSE_PTHREADPOOL -DNDEBUG -DUSE_KINETO -DLIBKINETO_NOROCTRACER -DUSE_FBGEMM -DUSE_QNNPACK -DUSE_PYTORCH_QNNPACK -DUSE_XNNPACK -DSYMBOLICATE_MOBILE_DEBUG_HANDLE -O2 -fPIC -Wall -Wextra -Werror=return-type -Werror=non-virtual-dtor -Werror=bool-operation -Wnarrowing -Wno-missing-field-initializers -Wno-type-limits -Wno-array-bounds -Wno-unknown-pragmas -Wno-unused-parameter -Wno-unused-function -Wno-unused-result -Wno-strict-overflow -Wno-strict-aliasing -Wno-stringop-overflow -Wno-psabi -Wno-error=pedantic -Wno-error=old-style-cast -Wno-invalid-partial-specialization -Wno-unused-private-field -Wno-aligned-allocation-unavailable -Wno-missing-braces -fdiagnostics-color=always -faligned-new -Wno-unused-but-set-variable -Wno-maybe-uninitialized -fno-math-errno -fno-trapping-math -Werror=format -Werror=cast-function-type -Wno-stringop-overflow, LAPACK_INFO=mkl, PERF_WITH_AVX=1, PERF_WITH_AVX2=1, PERF_WITH_AVX512=1, TORCH_DISABLE_GPU_ASSERTS=ON, TORCH_VERSION=2.1.2, USE_CUDA=ON, USE_CUDNN=ON, USE_EXCEPTION_PTR=1, USE_GFLAGS=OFF, USE_GLOG=OFF, USE_MKL=ON, USE_MKLDNN=ON, USE_MPI=OFF, USE_NCCL=1, USE_NNPACK=ON, USE_OPENMP=ON, USE_ROCM=OFF, 
+
+    TorchVision: 0.16.2+cu118
+    OpenCV: 4.13.0
+    MMEngine: 0.10.6
+
+Runtime environment:
+    dist_cfg: {'backend': 'nccl'}
+    seed: 885031094
+    Distributed launcher: none
+    Distributed training: False
+    GPU number: 1
+------------------------------------------------------------
+
+2026/03/12 07:03:41 - mmengine - INFO - Config:
+auto_scale_lr = dict(base_batch_size=32, enable=False)
+backend_args = None
+checkpoint_config = dict(interval=1)
+class_names = [
+    'Car',
+    'Pedestrian',
+    'Cyclist',
+]
+custom_imports = dict(
+    allow_failed_imports=False,
+    imports=[
+        'configs.cbam_ensemble_vlm.cbam_ensemble_vlm_film',
+    ])
+data_root = '/mnt/data/ataparia/LidarTraining/dawn_dusk-frames/'
+dataset_type = 'WaymoDataset'
+db_sampler = dict(
+    backend_args=None,
+    classes=[
+        'Car',
+        'Pedestrian',
+        'Cyclist',
+    ],
+    data_root='/mnt/data/ataparia/LidarTraining/dawn_dusk-frames/',
+    info_path=
+    '/mnt/data/ataparia/LidarTraining/dawn_dusk-frames/waymo_dbinfos_train.pkl',
+    points_loader=dict(
+        backend_args=None,
+        coord_type='LIDAR',
+        load_dim=6,
+        type='LoadPointsFromFile',
+        use_dim=[
+            0,
+            1,
+            2,
+            3,
+            4,
+        ]),
+    prepare=dict(
+        filter_by_difficulty=[
+            -1,
+        ],
+        filter_by_min_points=dict(Car=5, Cyclist=5, Pedestrian=5)),
+    rate=1.0,
+    sample_groups=dict(Car=15, Cyclist=10, Pedestrian=10))
+dist_params = dict(backend='nccl')
+input_modality = dict(use_camera=False, use_lidar=True)
+launcher = 'none'
+load_from = None
+log_config = dict(
+    hooks=[
+        [
+            dict(type='LocalVisBackend'),
+            dict(type='TensorboardVisBackend'),
+            dict(
+                init_kwargs=dict(
+                    mode='online',
+                    name='cbam_ensemble_vlm_film',
+                    project='MMdet_LiDAR_ObjectDetection'),
+                type='WandbVisBackend'),
+        ],
+        dict(
+            name='visualizer',
+            type='DetLocalVisualizer',
+            vis_backends=[
+                dict(type='LocalVisBackend'),
+                dict(type='TensorboardVisBackend'),
+                dict(
+                    init_kwargs=dict(
+                        mode='online',
+                        name='cbam_ensemble_vlm_film',
+                        project='MMdet_LiDAR_ObjectDetection'),
+                    type='WandbVisBackend'),
+            ]),
+    ],
+    interval=50)
+log_level = 'INFO'
+lr_config = dict(
+    policy='step',
+    step=[
+        20,
+        23,
+    ],
+    warmup='linear',
+    warmup_iters=1000,
+    warmup_ratio=0.001)
+metainfo = dict(classes=[
+    'Car',
+    'Pedestrian',
+    'Cyclist',
+])
+model = dict(
+    backbone=dict(
+        in_channels=384,
+        layer_nums=[
+            5,
+            5,
+        ],
+        layer_strides=[
+            1,
+            2,
+        ],
+        norm_cfg=dict(eps=0.001, momentum=0.01, type='naiveSyncBN2d'),
+        out_channels=[
+            128,
+            256,
+        ],
+        type='SECOND'),
+    bbox_head=dict(
+        anchor_generator=dict(
+            ranges=[
+                [
+                    -76.8,
+                    -51.2,
+                    -0.0345,
+                    76.8,
+                    51.2,
+                    -0.0345,
+                ],
+                [
+                    -76.8,
+                    -51.2,
+                    0,
+                    76.8,
+                    51.2,
+                    0,
+                ],
+                [
+                    -76.8,
+                    -51.2,
+                    -0.1188,
+                    76.8,
+                    51.2,
+                    -0.1188,
+                ],
+            ],
+            reshape_out=False,
+            rotations=[
+                0,
+                1.57,
+            ],
+            sizes=[
+                [
+                    4.73,
+                    2.08,
+                    1.77,
+                ],
+                [
+                    0.91,
+                    0.84,
+                    1.74,
+                ],
+                [
+                    1.81,
+                    0.84,
+                    1.77,
+                ],
+            ],
+            type='AlignedAnchor3DRangeGenerator'),
+        bbox_coder=dict(code_size=7, type='DeltaXYZWLHRBBoxCoder'),
+        diff_rad_by_sin=True,
+        dir_offset=-0.7854,
+        feat_channels=512,
+        in_channels=512,
+        loss_bbox=dict(
+            beta=0.1111111111111111,
+            loss_weight=1.0,
+            type='mmdet.SmoothL1Loss'),
+        loss_cls=dict(
+            alpha=0.25,
+            gamma=2.0,
+            loss_weight=1.0,
+            type='mmdet.FocalLoss',
+            use_sigmoid=True),
+        loss_dir=dict(
+            loss_weight=0.2, type='mmdet.CrossEntropyLoss', use_sigmoid=False),
+        num_classes=3,
+        type='Anchor3DHead',
+        use_direction_classifier=True),
+    lidar_model_cfg_path='configs/second_detr_ensemble.py',
+    lidar_model_path=
+    '/data/ataparia/mmdet_lidar/work_dirs/second/epoch_100.pth',
+    neck=dict(
+        in_channels=[
+            128,
+            256,
+        ],
+        norm_cfg=dict(eps=0.001, momentum=0.01, type='naiveSyncBN2d'),
+        out_channels=[
+            256,
+            256,
+        ],
+        type='SECONDFPN',
+        upsample_strides=[
+            1,
+            2,
+        ]),
+    rgb_model_path='trained_models/rgb_fulldata/checkpoint-190000',
+    test_cfg=dict(
+        max_num=500,
+        min_bbox_size=0,
+        nms_across_levels=False,
+        nms_pre=4096,
+        nms_thr=0.25,
+        score_thr=0.1,
+        use_rotate_nms=True),
+    test_jsonl_file=
+    '/home/local/ASURITE/ataparia/snap/snapd-desktop-integration/current/Desktop/mmdet3d/smolvlm_conditions/dawn_dusk_testing.jsonl',
+    train_cfg=dict(
+        allowed_border=0,
+        assigner=[
+            dict(
+                ignore_iof_thr=-1,
+                iou_calculator=dict(type='BboxOverlapsNearest3D'),
+                min_pos_iou=0.4,
+                neg_iou_thr=0.4,
+                pos_iou_thr=0.55,
+                type='mmdet.MaxIoUAssigner'),
+            dict(
+                ignore_iof_thr=-1,
+                iou_calculator=dict(type='BboxOverlapsNearest3D'),
+                min_pos_iou=0.3,
+                neg_iou_thr=0.3,
+                pos_iou_thr=0.5,
+                type='mmdet.MaxIoUAssigner'),
+            dict(
+                ignore_iof_thr=-1,
+                iou_calculator=dict(type='BboxOverlapsNearest3D'),
+                min_pos_iou=0.3,
+                neg_iou_thr=0.3,
+                pos_iou_thr=0.5,
+                type='mmdet.MaxIoUAssigner'),
+        ],
+        code_weight=[
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+        ],
+        debug=False,
+        pos_weight=-1),
+    train_jsonl_file=
+    '/home/local/ASURITE/ataparia/snap/snapd-desktop-integration/current/Desktop/mmdet3d/gpt4o_conditions/night-day_training.jsonl',
+    type='CBAMEnsembleVLMFiLM',
+    val_jsonl_file=
+    '/home/local/ASURITE/ataparia/snap/snapd-desktop-integration/current/Desktop/mmdet3d/gpt4o_conditions/night-day_validation.jsonl'
+)
+momentum_config = None
+mp_start_method = 'fork'
+opencv_num_threads = 0
+optim_wrapper = dict(
+    optimizer=dict(lr=0.001, type='AdamW', weight_decay=0.01),
+    type='OptimWrapper')
+optimizer = dict(lr=0.001, type='AdamW', weight_decay=0.01)
+optimizer_config = dict(grad_clip=dict(max_norm=35, norm_type=2))
+point_cloud_range = [
+    -76.8,
+    -51.2,
+    -2,
+    76.8,
+    51.2,
+    4,
+]
+resume = True
+resume_from = None
+runner = dict(max_epochs=24, type='EpochBasedRunner')
+test_cfg = dict(type='TestLoop')
+test_dataloader = dict(
+    batch_size=4,
+    dataset=dict(
+        ann_file='waymo_infos_test.pkl',
+        backend_args=None,
+        box_type_3d='LiDAR',
+        data_prefix=dict(img='testing/image_0', pts='testing/velodyne'),
+        data_root='/mnt/data/ataparia/LidarTraining/dawn_dusk-frames/',
+        metainfo=dict(classes=[
+            'Car',
+            'Pedestrian',
+            'Cyclist',
+        ]),
+        modality=dict(use_camera=False, use_lidar=True),
+        pipeline=[
+            dict(
+                backend_args=None,
+                coord_type='LIDAR',
+                load_dim=6,
+                type='LoadPointsFromFile',
+                use_dim=5),
+            dict(
+                backend_args=None,
+                data_root=
+                '/mnt/data/ataparia/LidarTraining/dawn_dusk-frames/testing/image_0',
+                type='LoadImageFromFile'),
+            dict(
+                flip=False,
+                img_scale=(
+                    1333,
+                    800,
+                ),
+                pts_scale_ratio=1,
+                transforms=[
+                    dict(
+                        rot_range=[
+                            0,
+                            0,
+                        ],
+                        scale_ratio_range=[
+                            1.0,
+                            1.0,
+                        ],
+                        translation_std=[
+                            0,
+                            0,
+                            0,
+                        ],
+                        type='GlobalRotScaleTrans'),
+                    dict(type='RandomFlip3D'),
+                    dict(
+                        point_cloud_range=[
+                            -76.8,
+                            -51.2,
+                            -2,
+                            76.8,
+                            51.2,
+                            4,
+                        ],
+                        type='PointsRangeFilter'),
+                ],
+                type='MultiScaleFlipAug3D'),
+            dict(
+                keys=[
+                    'points',
+                    'img',
+                    'gt_bboxes_3d',
+                    'gt_labels_3d',
+                    'gt_bboxes',
+                    'gt_labels',
+                    'img_path',
+                ],
+                meta_keys=[
+                    'box_type_3d',
+                    'sample_idx',
+                    'context_name',
+                    'timestamp',
+                ],
+                type='Pack3DDetInputs'),
+        ],
+        test_mode=True,
+        type='WaymoDataset'),
+    drop_last=False,
+    num_workers=4,
+    persistent_workers=True,
+    sampler=dict(shuffle=False, type='DefaultSampler'))
+test_evaluator = dict(
+    type='WaymoMetric',
+    waymo_bin_file=
+    '/home/local/ASURITE/ataparia/snap/snapd-desktop-integration/current/Desktop/mmdet3d/gt_dawn_dusk_testing.bin'
+)
+test_pipeline = [
+    dict(
+        backend_args=None,
+        coord_type='LIDAR',
+        load_dim=6,
+        type='LoadPointsFromFile',
+        use_dim=5),
+    dict(
+        backend_args=None,
+        data_root=
+        '/mnt/data/ataparia/LidarTraining/dawn_dusk-frames/testing/image_0',
+        type='LoadImageFromFile'),
+    dict(
+        flip=False,
+        img_scale=(
+            1333,
+            800,
+        ),
+        pts_scale_ratio=1,
+        transforms=[
+            dict(
+                rot_range=[
+                    0,
+                    0,
+                ],
+                scale_ratio_range=[
+                    1.0,
+                    1.0,
+                ],
+                translation_std=[
+                    0,
+                    0,
+                    0,
+                ],
+                type='GlobalRotScaleTrans'),
+            dict(type='RandomFlip3D'),
+            dict(
+                point_cloud_range=[
+                    -76.8,
+                    -51.2,
+                    -2,
+                    76.8,
+                    51.2,
+                    4,
+                ],
+                type='PointsRangeFilter'),
+        ],
+        type='MultiScaleFlipAug3D'),
+    dict(
+        keys=[
+            'points',
+            'img',
+            'gt_bboxes_3d',
+            'gt_labels_3d',
+            'gt_bboxes',
+            'gt_labels',
+            'img_path',
+        ],
+        meta_keys=[
+            'box_type_3d',
+            'sample_idx',
+            'context_name',
+            'timestamp',
+        ],
+        type='Pack3DDetInputs'),
+]
+train_cfg = dict(max_epochs=50, type='EpochBasedTrainLoop', val_interval=1)
+train_dataloader = dict(
+    batch_size=4,
+    dataset=dict(
+        dataset=dict(
+            ann_file='waymo_infos_train.pkl',
+            backend_args=None,
+            box_type_3d='LiDAR',
+            data_prefix=dict(img='training/image_0', pts='training/velodyne'),
+            data_root='/mnt/data/ataparia/LidarTraining/dawn_dusk-frames/',
+            load_interval=5,
+            modality=dict(use_camera=False, use_lidar=True),
+            pipeline=[
+                dict(
+                    backend_args=None,
+                    coord_type='LIDAR',
+                    load_dim=6,
+                    type='LoadPointsFromFile',
+                    use_dim=5),
+                dict(
+                    backend_args=None,
+                    data_root=
+                    '/mnt/data/ataparia/LidarTraining/dawn_dusk-frames/training/image_0',
+                    type='LoadImageFromFile'),
+                dict(
+                    type='LoadAnnotations3D',
+                    with_bbox_3d=True,
+                    with_label_3d=True),
+                dict(
+                    flip_ratio_bev_horizontal=0.5,
+                    flip_ratio_bev_vertical=0.5,
+                    sync_2d=False,
+                    type='RandomFlip3D'),
+                dict(
+                    rot_range=[
+                        -0.78539816,
+                        0.78539816,
+                    ],
+                    scale_ratio_range=[
+                        0.95,
+                        1.05,
+                    ],
+                    type='GlobalRotScaleTrans'),
+                dict(
+                    point_cloud_range=[
+                        -76.8,
+                        -51.2,
+                        -2,
+                        76.8,
+                        51.2,
+                        4,
+                    ],
+                    type='PointsRangeFilter'),
+                dict(
+                    point_cloud_range=[
+                        -76.8,
+                        -51.2,
+                        -2,
+                        76.8,
+                        51.2,
+                        4,
+                    ],
+                    type='ObjectRangeFilter'),
+                dict(type='PointShuffle'),
+                dict(
+                    keys=[
+                        'points',
+                        'img',
+                        'gt_bboxes_3d',
+                        'gt_labels_3d',
+                        'gt_bboxes',
+                        'gt_labels',
+                        'img_path',
+                    ],
+                    meta_keys=[
+                        'box_type_3d',
+                        'sample_idx',
+                        'context_name',
+                        'timestamp',
+                    ],
+                    type='Pack3DDetInputs'),
+            ],
+            test_mode=False,
+            type='WaymoDataset'),
+        times=2,
+        type='RepeatDataset'),
+    num_workers=4,
+    persistent_workers=True,
+    sampler=dict(shuffle=True, type='DefaultSampler'))
+train_pipeline = [
+    dict(
+        backend_args=None,
+        coord_type='LIDAR',
+        load_dim=6,
+        type='LoadPointsFromFile',
+        use_dim=5),
+    dict(
+        backend_args=None,
+        data_root=
+        '/mnt/data/ataparia/LidarTraining/dawn_dusk-frames/training/image_0',
+        type='LoadImageFromFile'),
+    dict(type='LoadAnnotations3D', with_bbox_3d=True, with_label_3d=True),
+    dict(
+        flip_ratio_bev_horizontal=0.5,
+        flip_ratio_bev_vertical=0.5,
+        sync_2d=False,
+        type='RandomFlip3D'),
+    dict(
+        rot_range=[
+            -0.78539816,
+            0.78539816,
+        ],
+        scale_ratio_range=[
+            0.95,
+            1.05,
+        ],
+        type='GlobalRotScaleTrans'),
+    dict(
+        point_cloud_range=[
+            -76.8,
+            -51.2,
+            -2,
+            76.8,
+            51.2,
+            4,
+        ],
+        type='PointsRangeFilter'),
+    dict(
+        point_cloud_range=[
+            -76.8,
+            -51.2,
+            -2,
+            76.8,
+            51.2,
+            4,
+        ],
+        type='ObjectRangeFilter'),
+    dict(type='PointShuffle'),
+    dict(
+        keys=[
+            'points',
+            'img',
+            'gt_bboxes_3d',
+            'gt_labels_3d',
+            'gt_bboxes',
+            'gt_labels',
+            'img_path',
+        ],
+        meta_keys=[
+            'box_type_3d',
+            'sample_idx',
+            'context_name',
+            'timestamp',
+        ],
+        type='Pack3DDetInputs'),
+]
+val_cfg = dict(type='ValLoop')
+val_dataloader = dict(
+    batch_size=4,
+    dataset=dict(
+        ann_file='waymo_infos_val.pkl',
+        backend_args=None,
+        box_type_3d='LiDAR',
+        data_prefix=dict(img='training/image_0', pts='training/velodyne'),
+        data_root='/mnt/data/ataparia/LidarTraining/dawn_dusk-frames/',
+        metainfo=dict(classes=[
+            'Car',
+            'Pedestrian',
+            'Cyclist',
+        ]),
+        modality=dict(use_camera=False, use_lidar=True),
+        pipeline=[
+            dict(
+                backend_args=None,
+                coord_type='LIDAR',
+                load_dim=6,
+                type='LoadPointsFromFile',
+                use_dim=5),
+            dict(
+                backend_args=None,
+                data_root=
+                '/mnt/data/ataparia/LidarTraining/dawn_dusk-frames/training/image_0',
+                type='LoadImageFromFile'),
+            dict(
+                flip=False,
+                img_scale=(
+                    1333,
+                    800,
+                ),
+                pts_scale_ratio=1,
+                transforms=[
+                    dict(
+                        rot_range=[
+                            0,
+                            0,
+                        ],
+                        scale_ratio_range=[
+                            1.0,
+                            1.0,
+                        ],
+                        translation_std=[
+                            0,
+                            0,
+                            0,
+                        ],
+                        type='GlobalRotScaleTrans'),
+                    dict(type='RandomFlip3D'),
+                    dict(
+                        point_cloud_range=[
+                            -76.8,
+                            -51.2,
+                            -2,
+                            76.8,
+                            51.2,
+                            4,
+                        ],
+                        type='PointsRangeFilter'),
+                ],
+                type='MultiScaleFlipAug3D'),
+            dict(
+                keys=[
+                    'points',
+                    'img',
+                    'gt_bboxes_3d',
+                    'gt_labels_3d',
+                    'gt_bboxes',
+                    'gt_labels',
+                    'img_path',
+                ],
+                meta_keys=[
+                    'box_type_3d',
+                    'sample_idx',
+                    'context_name',
+                    'timestamp',
+                ],
+                type='Pack3DDetInputs'),
+        ],
+        test_mode=True,
+        type='WaymoDataset'),
+    drop_last=False,
+    num_workers=4,
+    persistent_workers=True,
+    sampler=dict(shuffle=False, type='DefaultSampler'))
+val_evaluator = dict(
+    type='WaymoMetric',
+    waymo_bin_file=
+    '/home/local/ASURITE/ataparia/snap/snapd-desktop-integration/current/Desktop/mmdet3d/gt_validation.bin'
+)
+val_pipeline = [
+    dict(
+        backend_args=None,
+        coord_type='LIDAR',
+        load_dim=6,
+        type='LoadPointsFromFile',
+        use_dim=5),
+    dict(
+        backend_args=None,
+        data_root=
+        '/mnt/data/ataparia/LidarTraining/dawn_dusk-frames/training/image_0',
+        type='LoadImageFromFile'),
+    dict(
+        flip=False,
+        img_scale=(
+            1333,
+            800,
+        ),
+        pts_scale_ratio=1,
+        transforms=[
+            dict(
+                rot_range=[
+                    0,
+                    0,
+                ],
+                scale_ratio_range=[
+                    1.0,
+                    1.0,
+                ],
+                translation_std=[
+                    0,
+                    0,
+                    0,
+                ],
+                type='GlobalRotScaleTrans'),
+            dict(type='RandomFlip3D'),
+            dict(
+                point_cloud_range=[
+                    -76.8,
+                    -51.2,
+                    -2,
+                    76.8,
+                    51.2,
+                    4,
+                ],
+                type='PointsRangeFilter'),
+        ],
+        type='MultiScaleFlipAug3D'),
+    dict(
+        keys=[
+            'points',
+            'img',
+            'gt_bboxes_3d',
+            'gt_labels_3d',
+            'gt_bboxes',
+            'gt_labels',
+            'img_path',
+        ],
+        meta_keys=[
+            'box_type_3d',
+            'sample_idx',
+            'context_name',
+            'timestamp',
+        ],
+        type='Pack3DDetInputs'),
+]
+work_dir = 'YOUR_PATH/cbam_ensemble_vlm_film_30_conditions'
+workflow = [
+    (
+        'train',
+        1,
+    ),
+]
+
+2026/03/12 07:03:42 - mmengine - WARNING - The current default scope "mmengine" is not "mmdet3d", `init_default_scope` will force set the currentdefault scope to "mmdet3d".
