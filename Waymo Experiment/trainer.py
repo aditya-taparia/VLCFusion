@@ -1,7 +1,7 @@
 import argparse
 import logging
 import os
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 import os.path as osp
 
 from mmengine.config import Config, DictAction
@@ -16,6 +16,8 @@ register_mmdet3d(init_default_scope=True)
 
 from mmdet.utils import register_all_modules as register_mmdet
 register_mmdet(init_default_scope=False)
+
+from custom_waymo_metric import CustomWaymoMetric  # noqa: F401
 
 # Patch mmdet.MaxIoUAssigner to handle bboxes_3d/labels_3d from mmdet3d
 from mmdet.models.task_modules.assigners.max_iou_assigner import MaxIoUAssigner as _MaxIoUAssigner
@@ -905,9 +907,14 @@ def axis_aligned_bbox_overlaps_3d(bboxes1,
     gious = ious - (enclose_area - union) / enclose_area
     return gious
 
-algo = 'cbam_ensemble_vlm_film'
-config = f'configs/{algo}_10_conditions.py'
-work_dir = f'YOUR_PATH/{algo}_30_conditions'
+# algo = 'cbam_ensemble_vlm_film'
+# config = f'configs/{algo}_10_conditions.py'
+# work_dir = f'YOUR_PATH/{algo}_30_conditions'
+algo = 'vlc_fusion'
+config = f'configs/{algo}_10_conditions_no_cosine.py'
+work_dir = f'YOUR_PATH/{algo}_10_conditions_no_cosine'
+# config = f'configs/{algo}_10_conditions.py'
+# work_dir = f'YOUR_PATH/{algo}_10_conditions'
 amp = False
 sync_bn = 'none'
 resume = 'auto'

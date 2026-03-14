@@ -1,0 +1,1089 @@
+2026/03/12 15:51:53 - mmengine - INFO - 
+------------------------------------------------------------
+System environment:
+    sys.platform: linux
+    Python: 3.10.19 (main, Oct 21 2025, 16:43:05) [GCC 11.2.0]
+    CUDA available: True
+    MUSA available: False
+    numpy_random_seed: 108797933
+    GPU 0: NVIDIA H100 NVL
+    CUDA_HOME: /data/ataparia/conda/envs/waymo
+    NVCC: Cuda compilation tools, release 11.8, V11.8.89
+    GCC: gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
+    PyTorch: 2.1.2+cu118
+    PyTorch compiling details: PyTorch built with:
+  - GCC 9.3
+  - C++ Version: 201703
+  - Intel(R) oneAPI Math Kernel Library Version 2022.2-Product Build 20220804 for Intel(R) 64 architecture applications
+  - Intel(R) MKL-DNN v3.1.1 (Git Hash 64f6bcbcbab628e96f33a62c3e975f8535a7bde4)
+  - OpenMP 201511 (a.k.a. OpenMP 4.5)
+  - LAPACK is enabled (usually provided by MKL)
+  - NNPACK is enabled
+  - CPU capability usage: AVX512
+  - CUDA Runtime 11.8
+  - NVCC architecture flags: -gencode;arch=compute_50,code=sm_50;-gencode;arch=compute_60,code=sm_60;-gencode;arch=compute_70,code=sm_70;-gencode;arch=compute_75,code=sm_75;-gencode;arch=compute_80,code=sm_80;-gencode;arch=compute_86,code=sm_86;-gencode;arch=compute_37,code=sm_37;-gencode;arch=compute_90,code=sm_90
+  - CuDNN 8.7
+  - Magma 2.6.1
+  - Build settings: BLAS_INFO=mkl, BUILD_TYPE=Release, CUDA_VERSION=11.8, CUDNN_VERSION=8.7.0, CXX_COMPILER=/opt/rh/devtoolset-9/root/usr/bin/c++, CXX_FLAGS= -D_GLIBCXX_USE_CXX11_ABI=0 -fabi-version=11 -fvisibility-inlines-hidden -DUSE_PTHREADPOOL -DNDEBUG -DUSE_KINETO -DLIBKINETO_NOROCTRACER -DUSE_FBGEMM -DUSE_QNNPACK -DUSE_PYTORCH_QNNPACK -DUSE_XNNPACK -DSYMBOLICATE_MOBILE_DEBUG_HANDLE -O2 -fPIC -Wall -Wextra -Werror=return-type -Werror=non-virtual-dtor -Werror=bool-operation -Wnarrowing -Wno-missing-field-initializers -Wno-type-limits -Wno-array-bounds -Wno-unknown-pragmas -Wno-unused-parameter -Wno-unused-function -Wno-unused-result -Wno-strict-overflow -Wno-strict-aliasing -Wno-stringop-overflow -Wno-psabi -Wno-error=pedantic -Wno-error=old-style-cast -Wno-invalid-partial-specialization -Wno-unused-private-field -Wno-aligned-allocation-unavailable -Wno-missing-braces -fdiagnostics-color=always -faligned-new -Wno-unused-but-set-variable -Wno-maybe-uninitialized -fno-math-errno -fno-trapping-math -Werror=format -Werror=cast-function-type -Wno-stringop-overflow, LAPACK_INFO=mkl, PERF_WITH_AVX=1, PERF_WITH_AVX2=1, PERF_WITH_AVX512=1, TORCH_DISABLE_GPU_ASSERTS=ON, TORCH_VERSION=2.1.2, USE_CUDA=ON, USE_CUDNN=ON, USE_EXCEPTION_PTR=1, USE_GFLAGS=OFF, USE_GLOG=OFF, USE_MKL=ON, USE_MKLDNN=ON, USE_MPI=OFF, USE_NCCL=1, USE_NNPACK=ON, USE_OPENMP=ON, USE_ROCM=OFF, 
+
+    TorchVision: 0.16.2+cu118
+    OpenCV: 4.13.0
+    MMEngine: 0.10.6
+
+Runtime environment:
+    dist_cfg: {'backend': 'nccl'}
+    seed: 108797933
+    Distributed launcher: none
+    Distributed training: False
+    GPU number: 1
+------------------------------------------------------------
+
+2026/03/12 15:51:54 - mmengine - INFO - Config:
+auto_scale_lr = dict(base_batch_size=32, enable=False)
+backend_args = None
+checkpoint_config = dict(interval=1)
+class_names = [
+    'Car',
+    'Pedestrian',
+    'Cyclist',
+]
+custom_imports = dict(
+    allow_failed_imports=False,
+    imports=[
+        'configs.cbam_ensemble_vlm.cross_cbam_dit_vlm_film',
+    ])
+data_root = '/data/ataparia/LidarTraining/night-day-frames/'
+dataset_type = 'WaymoDataset'
+db_sampler = dict(
+    backend_args=None,
+    classes=[
+        'Car',
+        'Pedestrian',
+        'Cyclist',
+    ],
+    data_root='/data/ataparia/LidarTraining/night-day-frames/',
+    info_path=
+    '/data/ataparia/LidarTraining/night-day-frames/waymo_dbinfos_train.pkl',
+    points_loader=dict(
+        backend_args=None,
+        coord_type='LIDAR',
+        load_dim=6,
+        type='LoadPointsFromFile',
+        use_dim=[
+            0,
+            1,
+            2,
+            3,
+            4,
+        ]),
+    prepare=dict(
+        filter_by_difficulty=[
+            -1,
+        ],
+        filter_by_min_points=dict(Car=5, Cyclist=5, Pedestrian=5)),
+    rate=1.0,
+    sample_groups=dict(Car=15, Cyclist=10, Pedestrian=10))
+dist_params = dict(backend='nccl')
+input_modality = dict(use_camera=True, use_lidar=True)
+launcher = 'none'
+load_from = 'YOUR_PATH/cross_cbam_dit_vlm_film_10_conditions/epoch_2.pth'
+log_config = dict(
+    hooks=[
+        dict(type='TextLoggerHook'),
+        dict(type='TensorboardLoggerHook'),
+    ],
+    interval=50)
+log_level = 'INFO'
+lr_config = dict(
+    policy='step',
+    step=[
+        20,
+        23,
+    ],
+    warmup='linear',
+    warmup_iters=1000,
+    warmup_ratio=0.001)
+metainfo = dict(classes=[
+    'Car',
+    'Pedestrian',
+    'Cyclist',
+])
+model = dict(
+    backbone=dict(
+        in_channels=384,
+        layer_nums=[
+            5,
+            5,
+        ],
+        layer_strides=[
+            1,
+            2,
+        ],
+        norm_cfg=dict(eps=0.001, momentum=0.01, type='naiveSyncBN2d'),
+        out_channels=[
+            128,
+            256,
+        ],
+        type='SECOND'),
+    bbox_head=dict(
+        anchor_generator=dict(
+            ranges=[
+                [
+                    -76.8,
+                    -51.2,
+                    -0.0345,
+                    76.8,
+                    51.2,
+                    -0.0345,
+                ],
+                [
+                    -76.8,
+                    -51.2,
+                    0,
+                    76.8,
+                    51.2,
+                    0,
+                ],
+                [
+                    -76.8,
+                    -51.2,
+                    -0.1188,
+                    76.8,
+                    51.2,
+                    -0.1188,
+                ],
+            ],
+            reshape_out=False,
+            rotations=[
+                0,
+                1.57,
+            ],
+            sizes=[
+                [
+                    4.73,
+                    2.08,
+                    1.77,
+                ],
+                [
+                    0.91,
+                    0.84,
+                    1.74,
+                ],
+                [
+                    1.81,
+                    0.84,
+                    1.77,
+                ],
+            ],
+            type='AlignedAnchor3DRangeGenerator'),
+        bbox_coder=dict(code_size=7, type='DeltaXYZWLHRBBoxCoder'),
+        diff_rad_by_sin=True,
+        dir_offset=-0.7854,
+        feat_channels=512,
+        in_channels=512,
+        loss_bbox=dict(
+            beta=0.1111111111111111,
+            loss_weight=1.0,
+            type='mmdet.SmoothL1Loss'),
+        loss_cls=dict(
+            alpha=0.25,
+            gamma=2.0,
+            loss_weight=1.0,
+            type='mmdet.FocalLoss',
+            use_sigmoid=True),
+        loss_dir=dict(
+            loss_weight=0.2, type='mmdet.CrossEntropyLoss', use_sigmoid=False),
+        num_classes=3,
+        type='Anchor3DHead',
+        use_direction_classifier=True),
+    lidar_model_cfg_path='configs/second_detr_ensemble.py',
+    lidar_model_path=
+    '/data/ataparia/mmdet_lidar/work_dirs/second/epoch_100.pth',
+    neck=dict(
+        in_channels=[
+            128,
+            256,
+        ],
+        norm_cfg=dict(eps=0.001, momentum=0.01, type='naiveSyncBN2d'),
+        out_channels=[
+            256,
+            256,
+        ],
+        type='SECONDFPN',
+        upsample_strides=[
+            1,
+            2,
+        ]),
+    rgb_model_path=
+    '/data/ataparia/RGBTraining/trained_models/rgb_fulldata/checkpoint-190000',
+    test_cfg=dict(
+        max_num=500,
+        min_bbox_size=0,
+        nms_across_levels=False,
+        nms_pre=4096,
+        nms_thr=0.25,
+        score_thr=0.1,
+        use_rotate_nms=True),
+    test_jsonl_file='conditions/smolvlm_conditions/dawn_dusk_testing.jsonl',
+    train_cfg=dict(
+        allowed_border=0,
+        assigner=[
+            dict(
+                ignore_iof_thr=-1,
+                iou_calculator=dict(type='BboxOverlapsNearest3D'),
+                min_pos_iou=0.4,
+                neg_iou_thr=0.4,
+                pos_iou_thr=0.55,
+                type='mmdet.MaxIoUAssigner'),
+            dict(
+                ignore_iof_thr=-1,
+                iou_calculator=dict(type='BboxOverlapsNearest3D'),
+                min_pos_iou=0.3,
+                neg_iou_thr=0.3,
+                pos_iou_thr=0.5,
+                type='mmdet.MaxIoUAssigner'),
+            dict(
+                ignore_iof_thr=-1,
+                iou_calculator=dict(type='BboxOverlapsNearest3D'),
+                min_pos_iou=0.3,
+                neg_iou_thr=0.3,
+                pos_iou_thr=0.5,
+                type='mmdet.MaxIoUAssigner'),
+        ],
+        code_weight=[
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+        ],
+        debug=False,
+        pos_weight=-1),
+    train_jsonl_file='conditions/night-day_training.jsonl',
+    type='CrossCBAMDiTVLMFiLM',
+    val_jsonl_file='conditions/night-day_validation.jsonl')
+momentum_config = None
+mp_start_method = 'fork'
+opencv_num_threads = 0
+optim_wrapper = dict(
+    loss_scale='dynamic',
+    optimizer=dict(lr=0.001, type='AdamW', weight_decay=0.01),
+    type='AmpOptimWrapper')
+optimizer = dict(lr=0.001, type='AdamW', weight_decay=0.01)
+optimizer_config = dict(grad_clip=dict(max_norm=35, norm_type=2))
+point_cloud_range = [
+    -76.8,
+    -51.2,
+    -2,
+    76.8,
+    51.2,
+    4,
+]
+resume_from = None
+runner = dict(max_epochs=24, type='EpochBasedRunner')
+test_cfg = dict(type='TestLoop')
+test_data_root = '/data/ataparia/LidarTraining/dawn_dusk-frames/'
+test_dataloader = dict(
+    batch_size=4,
+    dataset=dict(
+        ann_file='waymo_infos_test.pkl',
+        backend_args=None,
+        box_type_3d='LiDAR',
+        data_prefix=dict(img='testing/image_0', pts='testing/velodyne'),
+        data_root='/data/ataparia/LidarTraining/dawn_dusk-frames/',
+        default_cam_key='CAM_FRONT',
+        metainfo=dict(classes=[
+            'Car',
+            'Pedestrian',
+            'Cyclist',
+        ]),
+        modality=dict(use_camera=True, use_lidar=True),
+        pipeline=[
+            dict(
+                backend_args=None,
+                coord_type='LIDAR',
+                load_dim=6,
+                type='LoadPointsFromFile',
+                use_dim=5),
+            dict(
+                backend_args=None,
+                data_root=
+                '/data/ataparia/LidarTraining/dawn_dusk-frames/testing/image_0',
+                type='LoadImageFromFile'),
+            dict(
+                flip=False,
+                img_scale=(
+                    1333,
+                    800,
+                ),
+                pts_scale_ratio=1,
+                transforms=[
+                    dict(
+                        rot_range=[
+                            0,
+                            0,
+                        ],
+                        scale_ratio_range=[
+                            1.0,
+                            1.0,
+                        ],
+                        translation_std=[
+                            0,
+                            0,
+                            0,
+                        ],
+                        type='GlobalRotScaleTrans'),
+                    dict(type='RandomFlip3D'),
+                    dict(
+                        point_cloud_range=[
+                            -76.8,
+                            -51.2,
+                            -2,
+                            76.8,
+                            51.2,
+                            4,
+                        ],
+                        type='PointsRangeFilter'),
+                ],
+                type='MultiScaleFlipAug3D'),
+            dict(
+                keys=[
+                    'points',
+                    'img',
+                    'gt_bboxes_3d',
+                    'gt_labels_3d',
+                    'gt_bboxes',
+                    'gt_labels',
+                ],
+                meta_keys=[
+                    'box_type_3d',
+                    'sample_idx',
+                    'context_name',
+                    'timestamp',
+                    'img_path',
+                ],
+                type='Pack3DDetInputs'),
+        ],
+        test_mode=True,
+        type='WaymoDataset'),
+    drop_last=False,
+    num_workers=12,
+    persistent_workers=True,
+    pin_memory=True,
+    sampler=dict(shuffle=False, type='DefaultSampler'))
+test_evaluator = dict(
+    type='WaymoMetric', waymo_bin_file='gt_dawn_dusk_testing.bin')
+test_pipeline = [
+    dict(
+        backend_args=None,
+        coord_type='LIDAR',
+        load_dim=6,
+        type='LoadPointsFromFile',
+        use_dim=5),
+    dict(
+        backend_args=None,
+        data_root=
+        '/data/ataparia/LidarTraining/dawn_dusk-frames/testing/image_0',
+        type='LoadImageFromFile'),
+    dict(
+        flip=False,
+        img_scale=(
+            1333,
+            800,
+        ),
+        pts_scale_ratio=1,
+        transforms=[
+            dict(
+                rot_range=[
+                    0,
+                    0,
+                ],
+                scale_ratio_range=[
+                    1.0,
+                    1.0,
+                ],
+                translation_std=[
+                    0,
+                    0,
+                    0,
+                ],
+                type='GlobalRotScaleTrans'),
+            dict(type='RandomFlip3D'),
+            dict(
+                point_cloud_range=[
+                    -76.8,
+                    -51.2,
+                    -2,
+                    76.8,
+                    51.2,
+                    4,
+                ],
+                type='PointsRangeFilter'),
+        ],
+        type='MultiScaleFlipAug3D'),
+    dict(
+        keys=[
+            'points',
+            'img',
+            'gt_bboxes_3d',
+            'gt_labels_3d',
+            'gt_bboxes',
+            'gt_labels',
+        ],
+        meta_keys=[
+            'box_type_3d',
+            'sample_idx',
+            'context_name',
+            'timestamp',
+            'img_path',
+        ],
+        type='Pack3DDetInputs'),
+]
+train_cfg = dict(max_epochs=40, type='EpochBasedTrainLoop', val_interval=1)
+train_dataloader = dict(
+    batch_size=4,
+    dataset=dict(
+        dataset=dict(
+            ann_file='waymo_infos_train.pkl',
+            backend_args=None,
+            box_type_3d='LiDAR',
+            data_prefix=dict(img='training/image_0', pts='training/velodyne'),
+            data_root='/data/ataparia/LidarTraining/night-day-frames/',
+            default_cam_key='CAM_FRONT',
+            load_interval=5,
+            modality=dict(use_camera=True, use_lidar=True),
+            pipeline=[
+                dict(
+                    backend_args=None,
+                    coord_type='LIDAR',
+                    load_dim=6,
+                    type='LoadPointsFromFile',
+                    use_dim=5),
+                dict(
+                    backend_args=None,
+                    data_root=
+                    '/data/ataparia/LidarTraining/night-day-frames/training/image_0',
+                    type='LoadImageFromFile'),
+                dict(
+                    type='LoadAnnotations3D',
+                    with_bbox_3d=True,
+                    with_label_3d=True),
+                dict(
+                    flip_ratio_bev_horizontal=0.5,
+                    flip_ratio_bev_vertical=0.5,
+                    sync_2d=False,
+                    type='RandomFlip3D'),
+                dict(
+                    rot_range=[
+                        -0.78539816,
+                        0.78539816,
+                    ],
+                    scale_ratio_range=[
+                        0.95,
+                        1.05,
+                    ],
+                    type='GlobalRotScaleTrans'),
+                dict(
+                    point_cloud_range=[
+                        -76.8,
+                        -51.2,
+                        -2,
+                        76.8,
+                        51.2,
+                        4,
+                    ],
+                    type='PointsRangeFilter'),
+                dict(
+                    point_cloud_range=[
+                        -76.8,
+                        -51.2,
+                        -2,
+                        76.8,
+                        51.2,
+                        4,
+                    ],
+                    type='ObjectRangeFilter'),
+                dict(type='PointShuffle'),
+                dict(
+                    keys=[
+                        'points',
+                        'img',
+                        'gt_bboxes_3d',
+                        'gt_labels_3d',
+                        'gt_bboxes',
+                        'gt_labels',
+                    ],
+                    meta_keys=[
+                        'box_type_3d',
+                        'sample_idx',
+                        'context_name',
+                        'timestamp',
+                        'img_path',
+                    ],
+                    type='Pack3DDetInputs'),
+            ],
+            test_mode=False,
+            type='WaymoDataset'),
+        times=1,
+        type='RepeatDataset'),
+    num_workers=12,
+    persistent_workers=True,
+    pin_memory=True,
+    sampler=dict(shuffle=True, type='DefaultSampler'))
+train_pipeline = [
+    dict(
+        backend_args=None,
+        coord_type='LIDAR',
+        load_dim=6,
+        type='LoadPointsFromFile',
+        use_dim=5),
+    dict(
+        backend_args=None,
+        data_root=
+        '/data/ataparia/LidarTraining/night-day-frames/training/image_0',
+        type='LoadImageFromFile'),
+    dict(type='LoadAnnotations3D', with_bbox_3d=True, with_label_3d=True),
+    dict(
+        flip_ratio_bev_horizontal=0.5,
+        flip_ratio_bev_vertical=0.5,
+        sync_2d=False,
+        type='RandomFlip3D'),
+    dict(
+        rot_range=[
+            -0.78539816,
+            0.78539816,
+        ],
+        scale_ratio_range=[
+            0.95,
+            1.05,
+        ],
+        type='GlobalRotScaleTrans'),
+    dict(
+        point_cloud_range=[
+            -76.8,
+            -51.2,
+            -2,
+            76.8,
+            51.2,
+            4,
+        ],
+        type='PointsRangeFilter'),
+    dict(
+        point_cloud_range=[
+            -76.8,
+            -51.2,
+            -2,
+            76.8,
+            51.2,
+            4,
+        ],
+        type='ObjectRangeFilter'),
+    dict(type='PointShuffle'),
+    dict(
+        keys=[
+            'points',
+            'img',
+            'gt_bboxes_3d',
+            'gt_labels_3d',
+            'gt_bboxes',
+            'gt_labels',
+        ],
+        meta_keys=[
+            'box_type_3d',
+            'sample_idx',
+            'context_name',
+            'timestamp',
+            'img_path',
+        ],
+        type='Pack3DDetInputs'),
+]
+val_cfg = dict(type='ValLoop')
+val_dataloader = dict(
+    batch_size=4,
+    dataset=dict(
+        ann_file='waymo_infos_val.pkl',
+        backend_args=None,
+        box_type_3d='LiDAR',
+        data_prefix=dict(img='training/image_0', pts='training/velodyne'),
+        data_root='/data/ataparia/LidarTraining/night-day-frames/',
+        default_cam_key='CAM_FRONT',
+        metainfo=dict(classes=[
+            'Car',
+            'Pedestrian',
+            'Cyclist',
+        ]),
+        modality=dict(use_camera=True, use_lidar=True),
+        pipeline=[
+            dict(
+                backend_args=None,
+                coord_type='LIDAR',
+                load_dim=6,
+                type='LoadPointsFromFile',
+                use_dim=5),
+            dict(
+                backend_args=None,
+                data_root=
+                '/data/ataparia/LidarTraining/night-day-frames/training/image_0',
+                type='LoadImageFromFile'),
+            dict(
+                flip=False,
+                img_scale=(
+                    1333,
+                    800,
+                ),
+                pts_scale_ratio=1,
+                transforms=[
+                    dict(
+                        rot_range=[
+                            0,
+                            0,
+                        ],
+                        scale_ratio_range=[
+                            1.0,
+                            1.0,
+                        ],
+                        translation_std=[
+                            0,
+                            0,
+                            0,
+                        ],
+                        type='GlobalRotScaleTrans'),
+                    dict(type='RandomFlip3D'),
+                    dict(
+                        point_cloud_range=[
+                            -76.8,
+                            -51.2,
+                            -2,
+                            76.8,
+                            51.2,
+                            4,
+                        ],
+                        type='PointsRangeFilter'),
+                ],
+                type='MultiScaleFlipAug3D'),
+            dict(
+                keys=[
+                    'points',
+                    'img',
+                    'gt_bboxes_3d',
+                    'gt_labels_3d',
+                    'gt_bboxes',
+                    'gt_labels',
+                ],
+                meta_keys=[
+                    'box_type_3d',
+                    'sample_idx',
+                    'context_name',
+                    'timestamp',
+                    'img_path',
+                ],
+                type='Pack3DDetInputs'),
+        ],
+        test_mode=True,
+        type='WaymoDataset'),
+    drop_last=False,
+    num_workers=12,
+    persistent_workers=True,
+    pin_memory=True,
+    sampler=dict(shuffle=False, type='DefaultSampler'))
+val_evaluator = dict(type='WaymoMetric', waymo_bin_file='gt_validation.bin')
+val_pipeline = [
+    dict(
+        backend_args=None,
+        coord_type='LIDAR',
+        load_dim=6,
+        type='LoadPointsFromFile',
+        use_dim=5),
+    dict(
+        backend_args=None,
+        data_root=
+        '/data/ataparia/LidarTraining/night-day-frames/training/image_0',
+        type='LoadImageFromFile'),
+    dict(
+        flip=False,
+        img_scale=(
+            1333,
+            800,
+        ),
+        pts_scale_ratio=1,
+        transforms=[
+            dict(
+                rot_range=[
+                    0,
+                    0,
+                ],
+                scale_ratio_range=[
+                    1.0,
+                    1.0,
+                ],
+                translation_std=[
+                    0,
+                    0,
+                    0,
+                ],
+                type='GlobalRotScaleTrans'),
+            dict(type='RandomFlip3D'),
+            dict(
+                point_cloud_range=[
+                    -76.8,
+                    -51.2,
+                    -2,
+                    76.8,
+                    51.2,
+                    4,
+                ],
+                type='PointsRangeFilter'),
+        ],
+        type='MultiScaleFlipAug3D'),
+    dict(
+        keys=[
+            'points',
+            'img',
+            'gt_bboxes_3d',
+            'gt_labels_3d',
+            'gt_bboxes',
+            'gt_labels',
+        ],
+        meta_keys=[
+            'box_type_3d',
+            'sample_idx',
+            'context_name',
+            'timestamp',
+            'img_path',
+        ],
+        type='Pack3DDetInputs'),
+]
+work_dir = 'eval_output'
+workflow = [
+    (
+        'train',
+        1,
+    ),
+]
+
+2026/03/12 15:51:55 - mmengine - WARNING - The current default scope "mmengine" is not "mmdet3d", `init_default_scope` will force set the currentdefault scope to "mmdet3d".
+2026/03/12 15:51:58 - mmengine - INFO - Distributed training is not used, all SyncBatchNorm (SyncBN) layers in the model will be automatically reverted to BatchNormXd layers if they are used.
+2026/03/12 15:51:58 - mmengine - INFO - Hooks will be executed in the following order:
+before_run:
+(VERY_HIGH   ) RuntimeInfoHook                    
+(BELOW_NORMAL) LoggerHook                         
+ -------------------- 
+before_train:
+(VERY_HIGH   ) RuntimeInfoHook                    
+(NORMAL      ) IterTimerHook                      
+(VERY_LOW    ) CheckpointHook                     
+ -------------------- 
+before_train_epoch:
+(VERY_HIGH   ) RuntimeInfoHook                    
+(NORMAL      ) IterTimerHook                      
+(NORMAL      ) DistSamplerSeedHook                
+ -------------------- 
+before_train_iter:
+(VERY_HIGH   ) RuntimeInfoHook                    
+(NORMAL      ) IterTimerHook                      
+ -------------------- 
+after_train_iter:
+(VERY_HIGH   ) RuntimeInfoHook                    
+(NORMAL      ) IterTimerHook                      
+(BELOW_NORMAL) LoggerHook                         
+(LOW         ) ParamSchedulerHook                 
+(VERY_LOW    ) CheckpointHook                     
+ -------------------- 
+after_train_epoch:
+(NORMAL      ) IterTimerHook                      
+(LOW         ) ParamSchedulerHook                 
+(VERY_LOW    ) CheckpointHook                     
+ -------------------- 
+before_val:
+(VERY_HIGH   ) RuntimeInfoHook                    
+ -------------------- 
+before_val_epoch:
+(NORMAL      ) IterTimerHook                      
+ -------------------- 
+before_val_iter:
+(NORMAL      ) IterTimerHook                      
+ -------------------- 
+after_val_iter:
+(NORMAL      ) IterTimerHook                      
+(BELOW_NORMAL) LoggerHook                         
+ -------------------- 
+after_val_epoch:
+(VERY_HIGH   ) RuntimeInfoHook                    
+(NORMAL      ) IterTimerHook                      
+(BELOW_NORMAL) LoggerHook                         
+(LOW         ) ParamSchedulerHook                 
+(VERY_LOW    ) CheckpointHook                     
+ -------------------- 
+after_val:
+(VERY_HIGH   ) RuntimeInfoHook                    
+ -------------------- 
+after_train:
+(VERY_HIGH   ) RuntimeInfoHook                    
+(VERY_LOW    ) CheckpointHook                     
+ -------------------- 
+before_test:
+(VERY_HIGH   ) RuntimeInfoHook                    
+ -------------------- 
+before_test_epoch:
+(NORMAL      ) IterTimerHook                      
+ -------------------- 
+before_test_iter:
+(NORMAL      ) IterTimerHook                      
+ -------------------- 
+after_test_iter:
+(NORMAL      ) IterTimerHook                      
+(BELOW_NORMAL) LoggerHook                         
+ -------------------- 
+after_test_epoch:
+(VERY_HIGH   ) RuntimeInfoHook                    
+(NORMAL      ) IterTimerHook                      
+(BELOW_NORMAL) LoggerHook                         
+ -------------------- 
+after_test:
+(VERY_HIGH   ) RuntimeInfoHook                    
+ -------------------- 
+after_run:
+(BELOW_NORMAL) LoggerHook                         
+ -------------------- 
+2026/03/12 15:52:13 - mmengine - INFO - ------------------------------
+2026/03/12 15:52:13 - mmengine - INFO - The length of test dataset: 9139
+2026/03/12 15:52:13 - mmengine - INFO - The number of instances per category in the dataset:
++------------+--------+
+| category   | number |
++------------+--------+
+| Car        | 305898 |
+| Pedestrian | 215689 |
+| Cyclist    | 3769   |
++------------+--------+
+2026/03/12 15:52:14 - mmengine - INFO - Load checkpoint from YOUR_PATH/cross_cbam_dit_vlm_film_10_conditions/epoch_2.pth
+2026/03/12 15:52:19 - mmengine - INFO - Epoch(val)[0][  10/2285]    eta: 0:17:44  time: 0.4680  data_time: 0.0520  memory: 3641  
+2026/03/12 15:52:22 - mmengine - INFO - Epoch(val)[0][  20/2285]    eta: 0:14:15  time: 0.2876  data_time: 0.0004  memory: 3641  
+2026/03/12 15:52:25 - mmengine - INFO - Epoch(val)[0][  30/2285]    eta: 0:13:03  time: 0.2868  data_time: 0.0004  memory: 3641  
+2026/03/12 15:52:28 - mmengine - INFO - Epoch(val)[0][  40/2285]    eta: 0:12:25  time: 0.2865  data_time: 0.0004  memory: 3641  
+2026/03/12 15:52:31 - mmengine - INFO - Epoch(val)[0][  50/2285]    eta: 0:12:05  time: 0.2936  data_time: 0.0004  memory: 3641  
+2026/03/12 15:52:34 - mmengine - INFO - Epoch(val)[0][  60/2285]    eta: 0:11:47  time: 0.2864  data_time: 0.0004  memory: 3641  
+2026/03/12 15:52:36 - mmengine - INFO - Epoch(val)[0][  70/2285]    eta: 0:11:36  time: 0.2908  data_time: 0.0004  memory: 3642  
+2026/03/12 15:52:39 - mmengine - INFO - Epoch(val)[0][  80/2285]    eta: 0:11:26  time: 0.2902  data_time: 0.0004  memory: 3641  
+2026/03/12 15:52:42 - mmengine - INFO - Epoch(val)[0][  90/2285]    eta: 0:11:18  time: 0.2915  data_time: 0.0004  memory: 3641  
+2026/03/12 15:52:45 - mmengine - INFO - Epoch(val)[0][ 100/2285]    eta: 0:11:11  time: 0.2895  data_time: 0.0004  memory: 3641  
+2026/03/12 15:52:48 - mmengine - INFO - Epoch(val)[0][ 110/2285]    eta: 0:11:03  time: 0.2866  data_time: 0.0004  memory: 3641  
+2026/03/12 15:52:51 - mmengine - INFO - Epoch(val)[0][ 120/2285]    eta: 0:10:58  time: 0.2941  data_time: 0.0004  memory: 3641  
+2026/03/12 15:52:54 - mmengine - INFO - Epoch(val)[0][ 130/2285]    eta: 0:10:52  time: 0.2874  data_time: 0.0004  memory: 3641  
+2026/03/12 15:52:57 - mmengine - INFO - Epoch(val)[0][ 140/2285]    eta: 0:10:47  time: 0.2878  data_time: 0.0004  memory: 3642  
+2026/03/12 15:53:00 - mmengine - INFO - Epoch(val)[0][ 150/2285]    eta: 0:10:42  time: 0.2901  data_time: 0.0004  memory: 3641  
+2026/03/12 15:53:03 - mmengine - INFO - Epoch(val)[0][ 160/2285]    eta: 0:10:38  time: 0.2870  data_time: 0.0004  memory: 3641  
+2026/03/12 15:53:05 - mmengine - INFO - Epoch(val)[0][ 170/2285]    eta: 0:10:33  time: 0.2847  data_time: 0.0004  memory: 3641  
+2026/03/12 15:53:08 - mmengine - INFO - Epoch(val)[0][ 180/2285]    eta: 0:10:28  time: 0.2864  data_time: 0.0004  memory: 3641  
+2026/03/12 15:53:11 - mmengine - INFO - Epoch(val)[0][ 190/2285]    eta: 0:10:24  time: 0.2901  data_time: 0.0004  memory: 3641  
+2026/03/12 15:53:14 - mmengine - INFO - Epoch(val)[0][ 200/2285]    eta: 0:10:20  time: 0.2864  data_time: 0.0004  memory: 3641  
+2026/03/12 15:53:17 - mmengine - INFO - Epoch(val)[0][ 210/2285]    eta: 0:10:16  time: 0.2880  data_time: 0.0004  memory: 3641  
+2026/03/12 15:53:20 - mmengine - INFO - Epoch(val)[0][ 220/2285]    eta: 0:10:12  time: 0.2895  data_time: 0.0004  memory: 3641  
+2026/03/12 15:53:23 - mmengine - INFO - Epoch(val)[0][ 230/2285]    eta: 0:10:08  time: 0.2865  data_time: 0.0004  memory: 3641  
+2026/03/12 15:53:26 - mmengine - INFO - Epoch(val)[0][ 240/2285]    eta: 0:10:05  time: 0.2888  data_time: 0.0004  memory: 3642  
+2026/03/12 15:53:28 - mmengine - INFO - Epoch(val)[0][ 250/2285]    eta: 0:10:01  time: 0.2907  data_time: 0.0004  memory: 3642  
+2026/03/12 15:53:31 - mmengine - INFO - Epoch(val)[0][ 260/2285]    eta: 0:09:58  time: 0.2851  data_time: 0.0004  memory: 3640  
+2026/03/12 15:53:34 - mmengine - INFO - Epoch(val)[0][ 270/2285]    eta: 0:09:55  time: 0.2928  data_time: 0.0004  memory: 3641  
+2026/03/12 15:53:37 - mmengine - INFO - Epoch(val)[0][ 280/2285]    eta: 0:09:51  time: 0.2874  data_time: 0.0004  memory: 3642  
+2026/03/12 15:53:40 - mmengine - INFO - Epoch(val)[0][ 290/2285]    eta: 0:09:48  time: 0.2877  data_time: 0.0004  memory: 3642  
+2026/03/12 15:53:43 - mmengine - INFO - Epoch(val)[0][ 300/2285]    eta: 0:09:44  time: 0.2878  data_time: 0.0005  memory: 3641  
+2026/03/12 15:53:46 - mmengine - INFO - Epoch(val)[0][ 310/2285]    eta: 0:09:41  time: 0.2905  data_time: 0.0005  memory: 3642  
+2026/03/12 15:53:49 - mmengine - INFO - Epoch(val)[0][ 320/2285]    eta: 0:09:37  time: 0.2847  data_time: 0.0004  memory: 3641  
+2026/03/12 15:53:51 - mmengine - INFO - Epoch(val)[0][ 330/2285]    eta: 0:09:34  time: 0.2849  data_time: 0.0004  memory: 3642  
+2026/03/12 15:53:54 - mmengine - INFO - Epoch(val)[0][ 340/2285]    eta: 0:09:31  time: 0.2893  data_time: 0.0004  memory: 3641  
+2026/03/12 15:53:57 - mmengine - INFO - Epoch(val)[0][ 350/2285]    eta: 0:09:27  time: 0.2869  data_time: 0.0004  memory: 3642  
+2026/03/12 15:54:00 - mmengine - INFO - Epoch(val)[0][ 360/2285]    eta: 0:09:24  time: 0.2854  data_time: 0.0004  memory: 3642  
+2026/03/12 15:54:03 - mmengine - INFO - Epoch(val)[0][ 370/2285]    eta: 0:09:21  time: 0.2900  data_time: 0.0004  memory: 3641  
+2026/03/12 15:54:06 - mmengine - INFO - Epoch(val)[0][ 380/2285]    eta: 0:09:18  time: 0.2892  data_time: 0.0004  memory: 3641  
+2026/03/12 15:54:09 - mmengine - INFO - Epoch(val)[0][ 390/2285]    eta: 0:09:15  time: 0.2863  data_time: 0.0004  memory: 3641  
+2026/03/12 15:54:12 - mmengine - INFO - Epoch(val)[0][ 400/2285]    eta: 0:09:12  time: 0.2910  data_time: 0.0004  memory: 3642  
+2026/03/12 15:54:14 - mmengine - INFO - Epoch(val)[0][ 410/2285]    eta: 0:09:08  time: 0.2856  data_time: 0.0004  memory: 3641  
+2026/03/12 15:54:17 - mmengine - INFO - Epoch(val)[0][ 420/2285]    eta: 0:09:05  time: 0.2894  data_time: 0.0004  memory: 3641  
+2026/03/12 15:54:20 - mmengine - INFO - Epoch(val)[0][ 430/2285]    eta: 0:09:02  time: 0.2851  data_time: 0.0004  memory: 3642  
+2026/03/12 15:54:23 - mmengine - INFO - Epoch(val)[0][ 440/2285]    eta: 0:08:59  time: 0.2933  data_time: 0.0004  memory: 3641  
+2026/03/12 15:54:26 - mmengine - INFO - Epoch(val)[0][ 450/2285]    eta: 0:08:56  time: 0.2900  data_time: 0.0004  memory: 3642  
+2026/03/12 15:54:29 - mmengine - INFO - Epoch(val)[0][ 460/2285]    eta: 0:08:53  time: 0.2784  data_time: 0.0004  memory: 3641  
+2026/03/12 15:54:32 - mmengine - INFO - Epoch(val)[0][ 470/2285]    eta: 0:08:49  time: 0.2876  data_time: 0.0004  memory: 3642  
+2026/03/12 15:54:35 - mmengine - INFO - Epoch(val)[0][ 480/2285]    eta: 0:08:46  time: 0.2883  data_time: 0.0004  memory: 3641  
+2026/03/12 15:54:37 - mmengine - INFO - Epoch(val)[0][ 490/2285]    eta: 0:08:43  time: 0.2846  data_time: 0.0004  memory: 3642  
+2026/03/12 15:54:40 - mmengine - INFO - Epoch(val)[0][ 500/2285]    eta: 0:08:40  time: 0.2806  data_time: 0.0004  memory: 3641  
+2026/03/12 15:54:43 - mmengine - INFO - Epoch(val)[0][ 510/2285]    eta: 0:08:37  time: 0.2920  data_time: 0.0004  memory: 3641  
+2026/03/12 15:54:46 - mmengine - INFO - Epoch(val)[0][ 520/2285]    eta: 0:08:34  time: 0.2924  data_time: 0.0004  memory: 3642  
+2026/03/12 15:54:49 - mmengine - INFO - Epoch(val)[0][ 530/2285]    eta: 0:08:31  time: 0.2887  data_time: 0.0004  memory: 3641  
+2026/03/12 15:54:52 - mmengine - INFO - Epoch(val)[0][ 540/2285]    eta: 0:08:28  time: 0.2890  data_time: 0.0004  memory: 3641  
+2026/03/12 15:54:55 - mmengine - INFO - Epoch(val)[0][ 550/2285]    eta: 0:08:25  time: 0.2861  data_time: 0.0004  memory: 3642  
+2026/03/12 15:54:58 - mmengine - INFO - Epoch(val)[0][ 560/2285]    eta: 0:08:22  time: 0.2910  data_time: 0.0004  memory: 3641  
+2026/03/12 15:55:00 - mmengine - INFO - Epoch(val)[0][ 570/2285]    eta: 0:08:19  time: 0.2843  data_time: 0.0004  memory: 3641  
+2026/03/12 15:55:03 - mmengine - INFO - Epoch(val)[0][ 580/2285]    eta: 0:08:16  time: 0.2865  data_time: 0.0004  memory: 3642  
+2026/03/12 15:55:06 - mmengine - INFO - Epoch(val)[0][ 590/2285]    eta: 0:08:13  time: 0.2878  data_time: 0.0004  memory: 3641  
+2026/03/12 15:55:09 - mmengine - INFO - Epoch(val)[0][ 600/2285]    eta: 0:08:10  time: 0.2849  data_time: 0.0004  memory: 3642  
+2026/03/12 15:55:12 - mmengine - INFO - Epoch(val)[0][ 610/2285]    eta: 0:08:07  time: 0.2882  data_time: 0.0005  memory: 3642  
+2026/03/12 15:55:15 - mmengine - INFO - Epoch(val)[0][ 620/2285]    eta: 0:08:04  time: 0.2885  data_time: 0.0004  memory: 3642  
+2026/03/12 15:55:18 - mmengine - INFO - Epoch(val)[0][ 630/2285]    eta: 0:08:01  time: 0.2874  data_time: 0.0004  memory: 3641  
+2026/03/12 15:55:21 - mmengine - INFO - Epoch(val)[0][ 640/2285]    eta: 0:07:58  time: 0.2888  data_time: 0.0004  memory: 3642  
+2026/03/12 15:55:23 - mmengine - INFO - Epoch(val)[0][ 650/2285]    eta: 0:07:55  time: 0.2855  data_time: 0.0004  memory: 3641  
+2026/03/12 15:55:26 - mmengine - INFO - Epoch(val)[0][ 660/2285]    eta: 0:07:52  time: 0.2924  data_time: 0.0004  memory: 3641  
+2026/03/12 15:55:29 - mmengine - INFO - Epoch(val)[0][ 670/2285]    eta: 0:07:49  time: 0.2874  data_time: 0.0004  memory: 3641  
+2026/03/12 15:55:32 - mmengine - INFO - Epoch(val)[0][ 680/2285]    eta: 0:07:46  time: 0.2906  data_time: 0.0004  memory: 3641  
+2026/03/12 15:55:35 - mmengine - INFO - Epoch(val)[0][ 690/2285]    eta: 0:07:43  time: 0.2853  data_time: 0.0004  memory: 3641  
+2026/03/12 15:55:38 - mmengine - INFO - Epoch(val)[0][ 700/2285]    eta: 0:07:40  time: 0.2866  data_time: 0.0004  memory: 3641  
+2026/03/12 15:55:41 - mmengine - INFO - Epoch(val)[0][ 710/2285]    eta: 0:07:37  time: 0.2902  data_time: 0.0004  memory: 3641  
+2026/03/12 15:55:44 - mmengine - INFO - Epoch(val)[0][ 720/2285]    eta: 0:07:34  time: 0.2914  data_time: 0.0004  memory: 3642  
+2026/03/12 15:55:47 - mmengine - INFO - Epoch(val)[0][ 730/2285]    eta: 0:07:31  time: 0.2908  data_time: 0.0004  memory: 3641  
+2026/03/12 15:55:50 - mmengine - INFO - Epoch(val)[0][ 740/2285]    eta: 0:07:28  time: 0.2881  data_time: 0.0004  memory: 3641  
+2026/03/12 15:55:52 - mmengine - INFO - Epoch(val)[0][ 750/2285]    eta: 0:07:26  time: 0.2936  data_time: 0.0004  memory: 3641  
+2026/03/12 15:55:55 - mmengine - INFO - Epoch(val)[0][ 760/2285]    eta: 0:07:23  time: 0.2918  data_time: 0.0004  memory: 3641  
+2026/03/12 15:55:58 - mmengine - INFO - Epoch(val)[0][ 770/2285]    eta: 0:07:20  time: 0.2905  data_time: 0.0004  memory: 3641  
+2026/03/12 15:56:01 - mmengine - INFO - Epoch(val)[0][ 780/2285]    eta: 0:07:17  time: 0.2889  data_time: 0.0004  memory: 3641  
+2026/03/12 15:56:04 - mmengine - INFO - Epoch(val)[0][ 790/2285]    eta: 0:07:14  time: 0.2868  data_time: 0.0004  memory: 3641  
+2026/03/12 15:56:07 - mmengine - INFO - Epoch(val)[0][ 800/2285]    eta: 0:07:11  time: 0.2899  data_time: 0.0004  memory: 3641  
+2026/03/12 15:56:10 - mmengine - INFO - Epoch(val)[0][ 810/2285]    eta: 0:07:08  time: 0.2883  data_time: 0.0004  memory: 3641  
+2026/03/12 15:56:13 - mmengine - INFO - Epoch(val)[0][ 820/2285]    eta: 0:07:05  time: 0.2863  data_time: 0.0004  memory: 3642  
+2026/03/12 15:56:16 - mmengine - INFO - Epoch(val)[0][ 830/2285]    eta: 0:07:02  time: 0.2857  data_time: 0.0004  memory: 3641  
+2026/03/12 15:56:18 - mmengine - INFO - Epoch(val)[0][ 840/2285]    eta: 0:06:59  time: 0.2918  data_time: 0.0004  memory: 3641  
+2026/03/12 15:56:21 - mmengine - INFO - Epoch(val)[0][ 850/2285]    eta: 0:06:56  time: 0.2919  data_time: 0.0004  memory: 3641  
+2026/03/12 15:56:24 - mmengine - INFO - Epoch(val)[0][ 860/2285]    eta: 0:06:53  time: 0.2894  data_time: 0.0004  memory: 3642  
+2026/03/12 15:56:27 - mmengine - INFO - Epoch(val)[0][ 870/2285]    eta: 0:06:50  time: 0.2911  data_time: 0.0004  memory: 3641  
+2026/03/12 15:56:30 - mmengine - INFO - Epoch(val)[0][ 880/2285]    eta: 0:06:47  time: 0.2828  data_time: 0.0004  memory: 3641  
+2026/03/12 15:56:33 - mmengine - INFO - Epoch(val)[0][ 890/2285]    eta: 0:06:45  time: 0.2913  data_time: 0.0004  memory: 3642  
+2026/03/12 15:56:36 - mmengine - INFO - Epoch(val)[0][ 900/2285]    eta: 0:06:42  time: 0.2882  data_time: 0.0004  memory: 3641  
+2026/03/12 15:56:39 - mmengine - INFO - Epoch(val)[0][ 910/2285]    eta: 0:06:39  time: 0.2891  data_time: 0.0004  memory: 3641  
+2026/03/12 15:56:42 - mmengine - INFO - Epoch(val)[0][ 920/2285]    eta: 0:06:36  time: 0.2880  data_time: 0.0004  memory: 3641  
+2026/03/12 15:56:44 - mmengine - INFO - Epoch(val)[0][ 930/2285]    eta: 0:06:33  time: 0.2902  data_time: 0.0004  memory: 3641  
+2026/03/12 15:56:47 - mmengine - INFO - Epoch(val)[0][ 940/2285]    eta: 0:06:30  time: 0.2905  data_time: 0.0004  memory: 3641  
+2026/03/12 15:56:50 - mmengine - INFO - Epoch(val)[0][ 950/2285]    eta: 0:06:27  time: 0.2857  data_time: 0.0004  memory: 3641  
+2026/03/12 15:56:53 - mmengine - INFO - Epoch(val)[0][ 960/2285]    eta: 0:06:24  time: 0.2887  data_time: 0.0004  memory: 3641  
+2026/03/12 15:56:56 - mmengine - INFO - Epoch(val)[0][ 970/2285]    eta: 0:06:21  time: 0.2930  data_time: 0.0004  memory: 3641  
+2026/03/12 15:56:59 - mmengine - INFO - Epoch(val)[0][ 980/2285]    eta: 0:06:18  time: 0.2914  data_time: 0.0004  memory: 3642  
+2026/03/12 15:57:02 - mmengine - INFO - Epoch(val)[0][ 990/2285]    eta: 0:06:15  time: 0.2879  data_time: 0.0004  memory: 3641  
+2026/03/12 15:57:05 - mmengine - INFO - Epoch(val)[0][1000/2285]    eta: 0:06:12  time: 0.2889  data_time: 0.0004  memory: 3642  
+2026/03/12 15:57:08 - mmengine - INFO - Epoch(val)[0][1010/2285]    eta: 0:06:10  time: 0.2909  data_time: 0.0004  memory: 3641  
+2026/03/12 15:57:11 - mmengine - INFO - Epoch(val)[0][1020/2285]    eta: 0:06:07  time: 0.2885  data_time: 0.0004  memory: 3641  
+2026/03/12 15:57:13 - mmengine - INFO - Epoch(val)[0][1030/2285]    eta: 0:06:04  time: 0.2914  data_time: 0.0004  memory: 3642  
+2026/03/12 15:57:16 - mmengine - INFO - Epoch(val)[0][1040/2285]    eta: 0:06:01  time: 0.2909  data_time: 0.0004  memory: 3641  
+2026/03/12 15:57:19 - mmengine - INFO - Epoch(val)[0][1050/2285]    eta: 0:05:58  time: 0.2831  data_time: 0.0004  memory: 3641  
+2026/03/12 15:57:22 - mmengine - INFO - Epoch(val)[0][1060/2285]    eta: 0:05:55  time: 0.2883  data_time: 0.0004  memory: 3641  
+2026/03/12 15:57:25 - mmengine - INFO - Epoch(val)[0][1070/2285]    eta: 0:05:52  time: 0.2852  data_time: 0.0004  memory: 3642  
+2026/03/12 15:57:28 - mmengine - INFO - Epoch(val)[0][1080/2285]    eta: 0:05:49  time: 0.2825  data_time: 0.0004  memory: 3641  
+2026/03/12 15:57:31 - mmengine - INFO - Epoch(val)[0][1090/2285]    eta: 0:05:46  time: 0.2879  data_time: 0.0004  memory: 3641  
+2026/03/12 15:57:33 - mmengine - INFO - Epoch(val)[0][1100/2285]    eta: 0:05:43  time: 0.2835  data_time: 0.0004  memory: 3641  
+2026/03/12 15:57:36 - mmengine - INFO - Epoch(val)[0][1110/2285]    eta: 0:05:40  time: 0.2858  data_time: 0.0004  memory: 3641  
+2026/03/12 15:57:39 - mmengine - INFO - Epoch(val)[0][1120/2285]    eta: 0:05:37  time: 0.2935  data_time: 0.0004  memory: 3642  
+2026/03/12 15:57:42 - mmengine - INFO - Epoch(val)[0][1130/2285]    eta: 0:05:34  time: 0.2905  data_time: 0.0004  memory: 3641  
+2026/03/12 15:57:45 - mmengine - INFO - Epoch(val)[0][1140/2285]    eta: 0:05:31  time: 0.2901  data_time: 0.0004  memory: 3641  
+2026/03/12 15:57:48 - mmengine - INFO - Epoch(val)[0][1150/2285]    eta: 0:05:29  time: 0.2942  data_time: 0.0004  memory: 3642  
+2026/03/12 15:57:51 - mmengine - INFO - Epoch(val)[0][1160/2285]    eta: 0:05:26  time: 0.2870  data_time: 0.0004  memory: 3641  
+2026/03/12 15:57:54 - mmengine - INFO - Epoch(val)[0][1170/2285]    eta: 0:05:23  time: 0.2909  data_time: 0.0004  memory: 3642  
+2026/03/12 15:57:57 - mmengine - INFO - Epoch(val)[0][1180/2285]    eta: 0:05:20  time: 0.2791  data_time: 0.0004  memory: 3641  
+2026/03/12 15:57:59 - mmengine - INFO - Epoch(val)[0][1190/2285]    eta: 0:05:17  time: 0.2904  data_time: 0.0004  memory: 3641  
+2026/03/12 15:58:02 - mmengine - INFO - Epoch(val)[0][1200/2285]    eta: 0:05:14  time: 0.2863  data_time: 0.0004  memory: 3642  
+2026/03/12 15:58:05 - mmengine - INFO - Epoch(val)[0][1210/2285]    eta: 0:05:11  time: 0.2902  data_time: 0.0004  memory: 3641  
+2026/03/12 15:58:08 - mmengine - INFO - Epoch(val)[0][1220/2285]    eta: 0:05:08  time: 0.2892  data_time: 0.0004  memory: 3641  
+2026/03/12 15:58:11 - mmengine - INFO - Epoch(val)[0][1230/2285]    eta: 0:05:05  time: 0.2901  data_time: 0.0004  memory: 3641  
+2026/03/12 15:58:14 - mmengine - INFO - Epoch(val)[0][1240/2285]    eta: 0:05:02  time: 0.2890  data_time: 0.0004  memory: 3641  
+2026/03/12 15:58:17 - mmengine - INFO - Epoch(val)[0][1250/2285]    eta: 0:04:59  time: 0.2851  data_time: 0.0004  memory: 3642  
+2026/03/12 15:58:20 - mmengine - INFO - Epoch(val)[0][1260/2285]    eta: 0:04:57  time: 0.2920  data_time: 0.0004  memory: 3641  
+2026/03/12 15:58:23 - mmengine - INFO - Epoch(val)[0][1270/2285]    eta: 0:04:54  time: 0.2913  data_time: 0.0004  memory: 3642  
+2026/03/12 15:58:26 - mmengine - INFO - Epoch(val)[0][1280/2285]    eta: 0:04:51  time: 0.2906  data_time: 0.0004  memory: 3641  
+2026/03/12 15:58:28 - mmengine - INFO - Epoch(val)[0][1290/2285]    eta: 0:04:48  time: 0.2869  data_time: 0.0004  memory: 3641  
+2026/03/12 15:58:31 - mmengine - INFO - Epoch(val)[0][1300/2285]    eta: 0:04:45  time: 0.2889  data_time: 0.0004  memory: 3641  
+2026/03/12 15:58:34 - mmengine - INFO - Epoch(val)[0][1310/2285]    eta: 0:04:42  time: 0.2940  data_time: 0.0004  memory: 3642  
+2026/03/12 15:58:37 - mmengine - INFO - Epoch(val)[0][1320/2285]    eta: 0:04:39  time: 0.2834  data_time: 0.0004  memory: 3641  
+2026/03/12 15:58:40 - mmengine - INFO - Epoch(val)[0][1330/2285]    eta: 0:04:36  time: 0.2865  data_time: 0.0004  memory: 3642  
+2026/03/12 15:58:43 - mmengine - INFO - Epoch(val)[0][1340/2285]    eta: 0:04:33  time: 0.2895  data_time: 0.0004  memory: 3641  
+2026/03/12 15:58:46 - mmengine - INFO - Epoch(val)[0][1350/2285]    eta: 0:04:30  time: 0.2909  data_time: 0.0004  memory: 3641  
+2026/03/12 15:58:49 - mmengine - INFO - Epoch(val)[0][1360/2285]    eta: 0:04:28  time: 0.2860  data_time: 0.0004  memory: 3642  
+2026/03/12 15:58:51 - mmengine - INFO - Epoch(val)[0][1370/2285]    eta: 0:04:25  time: 0.2879  data_time: 0.0004  memory: 3641  
+2026/03/12 15:58:54 - mmengine - INFO - Epoch(val)[0][1380/2285]    eta: 0:04:22  time: 0.2894  data_time: 0.0004  memory: 3641  
+2026/03/12 15:58:57 - mmengine - INFO - Epoch(val)[0][1390/2285]    eta: 0:04:19  time: 0.2892  data_time: 0.0004  memory: 3642  
+2026/03/12 15:59:00 - mmengine - INFO - Epoch(val)[0][1400/2285]    eta: 0:04:16  time: 0.2916  data_time: 0.0004  memory: 3641  
+2026/03/12 15:59:03 - mmengine - INFO - Epoch(val)[0][1410/2285]    eta: 0:04:13  time: 0.2906  data_time: 0.0004  memory: 3641  
+2026/03/12 15:59:06 - mmengine - INFO - Epoch(val)[0][1420/2285]    eta: 0:04:10  time: 0.2825  data_time: 0.0004  memory: 3641  
+2026/03/12 15:59:09 - mmengine - INFO - Epoch(val)[0][1430/2285]    eta: 0:04:07  time: 0.2895  data_time: 0.0004  memory: 3641  
+2026/03/12 15:59:12 - mmengine - INFO - Epoch(val)[0][1440/2285]    eta: 0:04:04  time: 0.2881  data_time: 0.0004  memory: 3641  
+2026/03/12 15:59:15 - mmengine - INFO - Epoch(val)[0][1450/2285]    eta: 0:04:01  time: 0.2938  data_time: 0.0004  memory: 3642  
+2026/03/12 15:59:18 - mmengine - INFO - Epoch(val)[0][1460/2285]    eta: 0:03:59  time: 0.2921  data_time: 0.0004  memory: 3641  
+2026/03/12 15:59:20 - mmengine - INFO - Epoch(val)[0][1470/2285]    eta: 0:03:56  time: 0.2906  data_time: 0.0004  memory: 3641  
+2026/03/12 15:59:23 - mmengine - INFO - Epoch(val)[0][1480/2285]    eta: 0:03:53  time: 0.2842  data_time: 0.0004  memory: 3641  
+2026/03/12 15:59:26 - mmengine - INFO - Epoch(val)[0][1490/2285]    eta: 0:03:50  time: 0.2938  data_time: 0.0004  memory: 3642  
+2026/03/12 15:59:29 - mmengine - INFO - Epoch(val)[0][1500/2285]    eta: 0:03:47  time: 0.2884  data_time: 0.0004  memory: 3641  
+2026/03/12 15:59:32 - mmengine - INFO - Epoch(val)[0][1510/2285]    eta: 0:03:44  time: 0.2914  data_time: 0.0004  memory: 3642  
+2026/03/12 15:59:35 - mmengine - INFO - Epoch(val)[0][1520/2285]    eta: 0:03:41  time: 0.2883  data_time: 0.0004  memory: 3641  
+2026/03/12 15:59:38 - mmengine - INFO - Epoch(val)[0][1530/2285]    eta: 0:03:38  time: 0.2899  data_time: 0.0004  memory: 3642  
+2026/03/12 15:59:41 - mmengine - INFO - Epoch(val)[0][1540/2285]    eta: 0:03:35  time: 0.2873  data_time: 0.0004  memory: 3641  
+2026/03/12 15:59:44 - mmengine - INFO - Epoch(val)[0][1550/2285]    eta: 0:03:32  time: 0.2834  data_time: 0.0004  memory: 3641  
+2026/03/12 15:59:46 - mmengine - INFO - Epoch(val)[0][1560/2285]    eta: 0:03:29  time: 0.2866  data_time: 0.0004  memory: 3641  
+2026/03/12 15:59:49 - mmengine - INFO - Epoch(val)[0][1570/2285]    eta: 0:03:27  time: 0.2841  data_time: 0.0004  memory: 3641  
+2026/03/12 15:59:52 - mmengine - INFO - Epoch(val)[0][1580/2285]    eta: 0:03:24  time: 0.2900  data_time: 0.0004  memory: 3641  
+2026/03/12 15:59:55 - mmengine - INFO - Epoch(val)[0][1590/2285]    eta: 0:03:21  time: 0.2950  data_time: 0.0004  memory: 3642  
+2026/03/12 15:59:58 - mmengine - INFO - Epoch(val)[0][1600/2285]    eta: 0:03:18  time: 0.2938  data_time: 0.0004  memory: 3642  
+2026/03/12 16:00:01 - mmengine - INFO - Epoch(val)[0][1610/2285]    eta: 0:03:15  time: 0.2882  data_time: 0.0004  memory: 3642  
+2026/03/12 16:00:04 - mmengine - INFO - Epoch(val)[0][1620/2285]    eta: 0:03:12  time: 0.2863  data_time: 0.0004  memory: 3641  
+2026/03/12 16:00:07 - mmengine - INFO - Epoch(val)[0][1630/2285]    eta: 0:03:09  time: 0.2887  data_time: 0.0004  memory: 3641  
+2026/03/12 16:00:09 - mmengine - INFO - Epoch(val)[0][1640/2285]    eta: 0:03:06  time: 0.2863  data_time: 0.0004  memory: 3641  
+2026/03/12 16:00:12 - mmengine - INFO - Epoch(val)[0][1650/2285]    eta: 0:03:03  time: 0.2939  data_time: 0.0004  memory: 3641  
+2026/03/12 16:00:15 - mmengine - INFO - Epoch(val)[0][1660/2285]    eta: 0:03:01  time: 0.2921  data_time: 0.0004  memory: 3641  
+2026/03/12 16:00:18 - mmengine - INFO - Epoch(val)[0][1670/2285]    eta: 0:02:58  time: 0.2857  data_time: 0.0004  memory: 3641  
+2026/03/12 16:00:21 - mmengine - INFO - Epoch(val)[0][1680/2285]    eta: 0:02:55  time: 0.2881  data_time: 0.0004  memory: 3642  
+2026/03/12 16:00:24 - mmengine - INFO - Epoch(val)[0][1690/2285]    eta: 0:02:52  time: 0.2849  data_time: 0.0004  memory: 3641  
+2026/03/12 16:00:27 - mmengine - INFO - Epoch(val)[0][1700/2285]    eta: 0:02:49  time: 0.2909  data_time: 0.0004  memory: 3641  
+2026/03/12 16:00:30 - mmengine - INFO - Epoch(val)[0][1710/2285]    eta: 0:02:46  time: 0.2882  data_time: 0.0004  memory: 3641  
+2026/03/12 16:00:33 - mmengine - INFO - Epoch(val)[0][1720/2285]    eta: 0:02:43  time: 0.2859  data_time: 0.0004  memory: 3641  
+2026/03/12 16:00:35 - mmengine - INFO - Epoch(val)[0][1730/2285]    eta: 0:02:40  time: 0.2839  data_time: 0.0004  memory: 3641  
+2026/03/12 16:00:38 - mmengine - INFO - Epoch(val)[0][1740/2285]    eta: 0:02:37  time: 0.2878  data_time: 0.0004  memory: 3641  
+2026/03/12 16:00:41 - mmengine - INFO - Epoch(val)[0][1750/2285]    eta: 0:02:34  time: 0.2897  data_time: 0.0004  memory: 3641  
+2026/03/12 16:00:44 - mmengine - INFO - Epoch(val)[0][1760/2285]    eta: 0:02:32  time: 0.2924  data_time: 0.0004  memory: 3641  
+2026/03/12 16:00:47 - mmengine - INFO - Epoch(val)[0][1770/2285]    eta: 0:02:29  time: 0.2951  data_time: 0.0004  memory: 3642  
+2026/03/12 16:00:50 - mmengine - INFO - Epoch(val)[0][1780/2285]    eta: 0:02:26  time: 0.2870  data_time: 0.0004  memory: 3641  
+2026/03/12 16:00:53 - mmengine - INFO - Epoch(val)[0][1790/2285]    eta: 0:02:23  time: 0.2920  data_time: 0.0004  memory: 3642  
+2026/03/12 16:00:56 - mmengine - INFO - Epoch(val)[0][1800/2285]    eta: 0:02:20  time: 0.2863  data_time: 0.0004  memory: 3641  
+2026/03/12 16:00:59 - mmengine - INFO - Epoch(val)[0][1810/2285]    eta: 0:02:17  time: 0.2893  data_time: 0.0004  memory: 3641  
+2026/03/12 16:01:02 - mmengine - INFO - Epoch(val)[0][1820/2285]    eta: 0:02:14  time: 0.2925  data_time: 0.0004  memory: 3642  
+2026/03/12 16:01:04 - mmengine - INFO - Epoch(val)[0][1830/2285]    eta: 0:02:11  time: 0.2919  data_time: 0.0004  memory: 3641  
+2026/03/12 16:01:07 - mmengine - INFO - Epoch(val)[0][1840/2285]    eta: 0:02:08  time: 0.2890  data_time: 0.0004  memory: 3642  
+2026/03/12 16:01:10 - mmengine - INFO - Epoch(val)[0][1850/2285]    eta: 0:02:05  time: 0.2886  data_time: 0.0004  memory: 3642  
+2026/03/12 16:01:13 - mmengine - INFO - Epoch(val)[0][1860/2285]    eta: 0:02:03  time: 0.2899  data_time: 0.0004  memory: 3641  
+2026/03/12 16:01:16 - mmengine - INFO - Epoch(val)[0][1870/2285]    eta: 0:02:00  time: 0.2907  data_time: 0.0004  memory: 3641  
+2026/03/12 16:01:19 - mmengine - INFO - Epoch(val)[0][1880/2285]    eta: 0:01:57  time: 0.2884  data_time: 0.0004  memory: 3641  
+2026/03/12 16:01:22 - mmengine - INFO - Epoch(val)[0][1890/2285]    eta: 0:01:54  time: 0.2908  data_time: 0.0004  memory: 3641  
+2026/03/12 16:01:25 - mmengine - INFO - Epoch(val)[0][1900/2285]    eta: 0:01:51  time: 0.2894  data_time: 0.0004  memory: 3641  
+2026/03/12 16:01:28 - mmengine - INFO - Epoch(val)[0][1910/2285]    eta: 0:01:48  time: 0.2891  data_time: 0.0004  memory: 3641  
+2026/03/12 16:01:31 - mmengine - INFO - Epoch(val)[0][1920/2285]    eta: 0:01:45  time: 0.2914  data_time: 0.0004  memory: 3641  
+2026/03/12 16:01:33 - mmengine - INFO - Epoch(val)[0][1930/2285]    eta: 0:01:42  time: 0.2925  data_time: 0.0004  memory: 3641  
+2026/03/12 16:01:36 - mmengine - INFO - Epoch(val)[0][1940/2285]    eta: 0:01:39  time: 0.2890  data_time: 0.0004  memory: 3641  
+2026/03/12 16:01:39 - mmengine - INFO - Epoch(val)[0][1950/2285]    eta: 0:01:37  time: 0.2886  data_time: 0.0004  memory: 3641  
+2026/03/12 16:01:42 - mmengine - INFO - Epoch(val)[0][1960/2285]    eta: 0:01:34  time: 0.2912  data_time: 0.0004  memory: 3642  
+2026/03/12 16:01:45 - mmengine - INFO - Epoch(val)[0][1970/2285]    eta: 0:01:31  time: 0.2870  data_time: 0.0004  memory: 3641  
+2026/03/12 16:01:48 - mmengine - INFO - Epoch(val)[0][1980/2285]    eta: 0:01:28  time: 0.2902  data_time: 0.0004  memory: 3641  
+2026/03/12 16:01:51 - mmengine - INFO - Epoch(val)[0][1990/2285]    eta: 0:01:25  time: 0.2929  data_time: 0.0004  memory: 3642  
+2026/03/12 16:01:54 - mmengine - INFO - Epoch(val)[0][2000/2285]    eta: 0:01:22  time: 0.2911  data_time: 0.0004  memory: 3641  
+2026/03/12 16:01:57 - mmengine - INFO - Epoch(val)[0][2010/2285]    eta: 0:01:19  time: 0.2859  data_time: 0.0004  memory: 3641  
+2026/03/12 16:02:00 - mmengine - INFO - Epoch(val)[0][2020/2285]    eta: 0:01:16  time: 0.2918  data_time: 0.0004  memory: 3641  
+2026/03/12 16:02:02 - mmengine - INFO - Epoch(val)[0][2030/2285]    eta: 0:01:13  time: 0.2805  data_time: 0.0004  memory: 3641  
+2026/03/12 16:02:05 - mmengine - INFO - Epoch(val)[0][2040/2285]    eta: 0:01:10  time: 0.2861  data_time: 0.0004  memory: 3641  
+2026/03/12 16:02:08 - mmengine - INFO - Epoch(val)[0][2050/2285]    eta: 0:01:08  time: 0.2945  data_time: 0.0004  memory: 3641  
+2026/03/12 16:02:11 - mmengine - INFO - Epoch(val)[0][2060/2285]    eta: 0:01:05  time: 0.2888  data_time: 0.0004  memory: 3641  
+2026/03/12 16:02:14 - mmengine - INFO - Epoch(val)[0][2070/2285]    eta: 0:01:02  time: 0.2872  data_time: 0.0004  memory: 3641  
+2026/03/12 16:02:17 - mmengine - INFO - Epoch(val)[0][2080/2285]    eta: 0:00:59  time: 0.2954  data_time: 0.0004  memory: 3642  
+2026/03/12 16:02:20 - mmengine - INFO - Epoch(val)[0][2090/2285]    eta: 0:00:56  time: 0.2933  data_time: 0.0004  memory: 3641  
+2026/03/12 16:02:23 - mmengine - INFO - Epoch(val)[0][2100/2285]    eta: 0:00:53  time: 0.2927  data_time: 0.0004  memory: 3641  
+2026/03/12 16:02:26 - mmengine - INFO - Epoch(val)[0][2110/2285]    eta: 0:00:50  time: 0.2941  data_time: 0.0004  memory: 3641  
+2026/03/12 16:02:29 - mmengine - INFO - Epoch(val)[0][2120/2285]    eta: 0:00:47  time: 0.2862  data_time: 0.0004  memory: 3641  
+2026/03/12 16:02:31 - mmengine - INFO - Epoch(val)[0][2130/2285]    eta: 0:00:44  time: 0.2909  data_time: 0.0004  memory: 3642  
+2026/03/12 16:02:34 - mmengine - INFO - Epoch(val)[0][2140/2285]    eta: 0:00:41  time: 0.2912  data_time: 0.0004  memory: 3641  
+2026/03/12 16:02:37 - mmengine - INFO - Epoch(val)[0][2150/2285]    eta: 0:00:39  time: 0.2866  data_time: 0.0004  memory: 3641  
+2026/03/12 16:02:40 - mmengine - INFO - Epoch(val)[0][2160/2285]    eta: 0:00:36  time: 0.2864  data_time: 0.0004  memory: 3641  
+2026/03/12 16:02:43 - mmengine - INFO - Epoch(val)[0][2170/2285]    eta: 0:00:33  time: 0.2899  data_time: 0.0004  memory: 3641  
+2026/03/12 16:02:46 - mmengine - INFO - Epoch(val)[0][2180/2285]    eta: 0:00:30  time: 0.2820  data_time: 0.0004  memory: 3641  
+2026/03/12 16:02:49 - mmengine - INFO - Epoch(val)[0][2190/2285]    eta: 0:00:27  time: 0.2913  data_time: 0.0004  memory: 3642  
+2026/03/12 16:02:52 - mmengine - INFO - Epoch(val)[0][2200/2285]    eta: 0:00:24  time: 0.2950  data_time: 0.0004  memory: 3642  
+2026/03/12 16:02:55 - mmengine - INFO - Epoch(val)[0][2210/2285]    eta: 0:00:21  time: 0.2903  data_time: 0.0004  memory: 3641  
+2026/03/12 16:02:57 - mmengine - INFO - Epoch(val)[0][2220/2285]    eta: 0:00:18  time: 0.2902  data_time: 0.0004  memory: 3641  
+2026/03/12 16:03:00 - mmengine - INFO - Epoch(val)[0][2230/2285]    eta: 0:00:15  time: 0.2931  data_time: 0.0004  memory: 3642  
+2026/03/12 16:03:03 - mmengine - INFO - Epoch(val)[0][2240/2285]    eta: 0:00:13  time: 0.2869  data_time: 0.0004  memory: 3641  
+2026/03/12 16:03:06 - mmengine - INFO - Epoch(val)[0][2250/2285]    eta: 0:00:10  time: 0.2925  data_time: 0.0004  memory: 3642  
+2026/03/12 16:03:09 - mmengine - INFO - Epoch(val)[0][2260/2285]    eta: 0:00:07  time: 0.2831  data_time: 0.0004  memory: 3641  
+2026/03/12 16:03:12 - mmengine - INFO - Epoch(val)[0][2270/2285]    eta: 0:00:04  time: 0.2858  data_time: 0.0003  memory: 3641  
+2026/03/12 16:03:15 - mmengine - INFO - Epoch(val)[0][2280/2285]    eta: 0:00:01  time: 0.2771  data_time: 0.0002  memory: 3641  
+2026/03/12 16:03:16 - mmengine - INFO - Start converting ...

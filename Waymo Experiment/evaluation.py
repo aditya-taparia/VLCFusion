@@ -1,8 +1,10 @@
 import argparse
 import os
+os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 import os.path as osp
 import sys # For logger
 import logging # For logger
+from typing import List, Optional, Tuple, Dict, Sequence, Union
 
 import torch
 from mmengine.config import Config
@@ -515,6 +517,9 @@ class BboxOverlaps3D:
         return f'{self.__class__.__name__}(coordinate={self.coordinate})'
 
 
+from custom_waymo_metric import CustomWaymoMetric  # noqa: F401
+
+
 # --- Main Execution Logic ---
 
 def parse_args():
@@ -586,8 +591,10 @@ def main():
         cfg.load_from = args.checkpoint
 
     # Handle data backend (e.g., Ceph) if utility is available
-    if replace_ceph_backend is not None:
-        cfg = replace_ceph_backend(cfg)
+    # Skipped: replace_ceph_backend can cause SyntaxError when re-parsing
+    # configs with certain constructs, and is unnecessary for local storage.
+    # if replace_ceph_backend is not None:
+    #     cfg = replace_ceph_backend(cfg)
 
     # Configure visualization hook
     if args.show or args.show_dir:

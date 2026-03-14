@@ -126,10 +126,11 @@ def run_eval(
     data_args = DataArguments(
         visible_dataset_dir=visible_dataset_dir,
         ir_dataset_dir=ir_dataset_dir,
-        train_conditions_file="conditions/seen/vlm_train.json",
-        val_conditions_file="conditions/seen/vlm_val.json",
-        test_conditions_file=f"conditions/{scenario}/vlm_test.json",
-        condition_indices_to_sample_str=condition_indices,
+        train_conditions_file="conditions/seen/human_train.json",
+        val_conditions_file="conditions/seen/human_val.json",
+        test_conditions_file=f"conditions/{scenario}/human_test.json",
+        condition_indices_to_sample_str=None,
+        # condition_indices_to_sample_str=condition_indices,
         image_size=image_size,
         num_classes=10,
     )
@@ -267,5 +268,5 @@ def main():
 
 
 if __name__ == "__main__":
-    os.environ.setdefault("CUDA_VISIBLE_DEVICES", "1")
+    os.environ.setdefault("CUDA_VISIBLE_DEVICES", "0")
     main()
