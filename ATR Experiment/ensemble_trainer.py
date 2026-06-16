@@ -45,6 +45,10 @@ class ModelArguments:
         default="VLCAM",
         metadata={"help": "Method for ensembling/fusing the multimodal features."}
     )
+    num_vlc_blocks: int = field(
+        default=2,
+        metadata={"help": "Number of stacked VLC blocks in the fusion head (CrossCBAM_DiT_V11 only). Paper default 2; ablation sweeps 2/4/6/8."}
+    )
     # Add any other model-specific hyperparameters here
 
 @dataclass
@@ -859,7 +863,8 @@ def main():
         model_name_2=model_args.model_dir_2,
         config=model_config, # Pass the updated config
         ensemble_method=model_args.ensemble_method,
-        n_conditions=n_conditions_eff # Pass the effective number of conditions
+        n_conditions=n_conditions_eff, # Pass the effective number of conditions
+        num_vlc_blocks=model_args.num_vlc_blocks
     )
 
     # Initialize image processor
@@ -953,5 +958,6 @@ if __name__ == "__main__":
     # Example: CUDA_VISIBLE_DEVICES=1 python your_script_name.py ...
     # If you must set it in script, do it before any torch imports if possible,
     # but external is preferred for flexibility.
-    os.environ["CUDA_VISIBLE_DEVICES"] = "1" # Original placement
+    # Respect an externally-provided CUDA_VISIBLE_DEVICES; only default if unset.
+    os.environ.setdefault("CUDA_VISIBLE_DEVICES", "1")
     main()

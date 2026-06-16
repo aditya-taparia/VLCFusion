@@ -210,28 +210,27 @@ class CrossCBAMDiTFusionV11(nn.Module):
         cond_dim: int,
         r: int = 2,
         num_groups: int = 8,
+        num_blocks: int = 2,
     ):
         super().__init__()
         self.mod1_channels = mod1_channels
         self.mod2_channels = mod2_channels
         self.out_channels = out_channels
+        self.num_blocks = num_blocks
 
-        # self.vlc_mod1 = VLCBlock(mod1_channels, cond_dim, r=r, num_groups=num_groups, if_ffn=True, ffn_factor=1, ffn_kernel_size=3)
-        # self.vlc_mod2 = VLCBlock(mod2_channels, cond_dim, r=r, num_groups=num_groups, if_ffn=True, ffn_factor=1, ffn_kernel_size=3)
-
-        # self.fusion_bottleneck = nn.Conv2d(
-        #     mod1_channels + mod2_channels, out_channels,
-        #     kernel_size=3, padding=1, bias=False,
-        # )
         self.fusion_bottleneck = MultiHeadFusionBottleneck(
-            mod1_channels + mod2_channels, 
+            mod1_channels + mod2_channels,
             out_channels
         )
 
-        self.vlc_fused = VLCBlock(out_channels, cond_dim, r=r, num_groups=num_groups, if_ffn=True, ffn_factor=1, ffn_kernel_size=3)
-        
-        self.vlc_fused2 = VLCBlock(out_channels, cond_dim, r=r, num_groups=num_groups, if_ffn=True, ffn_factor=1, ffn_kernel_size=3)
-        
+        # Stack of condition-modulated VLC blocks. Depth is configurable for the
+        # num-blocks ablation (paper default = 2; ablation sweeps 2/4/6/8).
+        self.vlc_blocks = nn.ModuleList([
+            VLCBlock(out_channels, cond_dim, r=r, num_groups=num_groups,
+                     if_ffn=True, ffn_factor=1, ffn_kernel_size=3)
+            for _ in range(num_blocks)
+        ])
+
 
     def forward(
         self,
@@ -247,14 +246,10 @@ class CrossCBAMDiTFusionV11(nn.Module):
         Returns:
             [B, out_channels, H, W]
         """
-        # s1 = self.vlc_mod1(x1, cond)
-        # s2 = self.vlc_mod2(x2, cond)
-        s1 = x1
-        s2 = x2
-
-        fused = self.fusion_bottleneck(torch.cat([s1, s2], dim=1))
-        fused2 = self.vlc_fused(fused, cond)
-        return self.vlc_fused2(fused2, cond)
+        fused = self.fusion_bottleneck(torch.cat([x1, x2], dim=1))
+        for blk in self.vlc_blocks:
+            fused = blk(fused, cond)
+        return fused
 
     # V1 is with just fusion after concat with 2 vlc blocks.
     # V2 is with fusion after multi-head concat with 2 vlc blocks.
@@ -272,6 +267,7 @@ class CrossCBAMDiTTransformLayerV11(nn.Module):
         cond_dim: int = 14,
         r: int = 2,
         num_groups: int = 8,
+        num_blocks: int = 2,
     ):
         super().__init__()
         self.fusion = CrossCBAMDiTFusionV11(
@@ -281,6 +277,7 @@ class CrossCBAMDiTTransformLayerV11(nn.Module):
             cond_dim=cond_dim,
             r=r,
             num_groups=num_groups,
+            num_blocks=num_blocks,
         )
 
     def forward(self, x: torch.Tensor, conditions: torch.Tensor) -> torch.Tensor:
@@ -296,6 +293,7 @@ class CrossCBAMDiTTransformQueriesV11(nn.Module):
         cond_dim: int = 14,
         r: int = 2,
         num_groups: int = 8,
+        num_blocks: int = 2,
     ):
         super().__init__()
         self.fusion = CrossCBAMDiTFusionV11(
@@ -305,6 +303,7 @@ class CrossCBAMDiTTransformQueriesV11(nn.Module):
             cond_dim=cond_dim,
             r=r,
             num_groups=num_groups,
+            num_blocks=num_blocks,
         )
 
     def forward(self, x: torch.Tensor, conditions: torch.Tensor) -> torch.Tensor:

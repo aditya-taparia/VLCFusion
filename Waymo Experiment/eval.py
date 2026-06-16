@@ -23,7 +23,7 @@ import os.path as osp
 
 os.environ.setdefault('CUDA_VISIBLE_DEVICES', '0')
 
-from mmengine.config import Config
+from mmengine.config import Config, DictAction
 from mmengine.registry import RUNNERS
 from mmengine.runner import Runner
 
@@ -73,9 +73,14 @@ def main():
                         help='Which split(s) to evaluate')
     parser.add_argument('--work-dir', default=None,
                         help='Directory to save logs and output files')
+    parser.add_argument('--cfg-options', nargs='+', action=DictAction, default=None,
+                        help='Override config settings, e.g. '
+                             'model.test_jsonl_file=conditions/smolvlm_conditions/dawn_dusk_testing.jsonl')
     args = parser.parse_args()
 
     cfg = Config.fromfile(args.config)
+    if args.cfg_options:
+        cfg.merge_from_dict(args.cfg_options)
 
     work_dir = args.work_dir or cfg.get('work_dir', None) or 'eval_output'
     cfg.work_dir = work_dir

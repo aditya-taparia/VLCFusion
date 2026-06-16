@@ -14,7 +14,7 @@ from transformers import (
 from typing import List, Optional, Tuple, Union
 
 class MultimodalDetr(nn.Module):
-    def __init__(self, model_name_1: str, model_name_2: str, config: AutoConfig, ensemble_method: str = "CBAM", n_conditions: int = 14):
+    def __init__(self, model_name_1: str, model_name_2: str, config: AutoConfig, ensemble_method: str = "CBAM", n_conditions: int = 14, num_vlc_blocks: int = 2):
         super().__init__()
         
         if ensemble_method not in ["CBAM", "FusionSSD", "CBAM_FiLM", "FusionSSD_FiLM", "FusionSSD_SelfAttention", "LearnableAlign", "VLCAM", "VLC", "CGB", "VLCA", "VLCA_Cross", "CrossCBAM_AdaLN", "CrossCBAM_DiT", "CrossCBAM_DiT_V2", "CrossCBAM_DiT_V3", "CrossCBAM_DiT_V4", "CrossCBAM_DiT_V5", "CrossCBAM_DiT_V6", "CrossCBAM_DiT_V7", "CrossCBAM_DiT_V8", "CrossCBAM_DiT_V9", "CrossCBAM_DiT_V10", "CrossCBAM_DiT_V11"]:
@@ -325,8 +325,8 @@ class MultimodalDetr(nn.Module):
             out_channels = 256
             cond_dim = n_conditions
             r = 2
-            self.transform_layer = CrossCBAMDiTTransformLayerV11(in_channels=in_channels, out_channels=out_channels, cond_dim=cond_dim, r=r)
-            self.transform_queries = CrossCBAMDiTTransformQueriesV11(in_channels=in_channels, out_channels=out_channels, cond_dim=cond_dim, r=r)
+            self.transform_layer = CrossCBAMDiTTransformLayerV11(in_channels=in_channels, out_channels=out_channels, cond_dim=cond_dim, r=r, num_blocks=num_vlc_blocks)
+            self.transform_queries = CrossCBAMDiTTransformQueriesV11(in_channels=in_channels, out_channels=out_channels, cond_dim=cond_dim, r=r, num_blocks=num_vlc_blocks)
     def forward( 
         self,
         pixel_values:torch.FloatTensor, 
