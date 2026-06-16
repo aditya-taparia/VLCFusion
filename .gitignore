@@ -1,4 +1,7 @@
+__pycache__/
+*.pyc
 ATR Experiment/models
 ATR Experiment/wandb
 Waymo Experiment/YOUR_PATH
 Waymo Experiment/eval_output
+Waymo Experiment/work_dirs
