@@ -17,7 +17,7 @@ class MultimodalDetr(nn.Module):
     def __init__(self, model_name_1: str, model_name_2: str, config: AutoConfig, ensemble_method: str = "CBAM", n_conditions: int = 14, num_vlc_blocks: int = 2):
         super().__init__()
         
-        if ensemble_method not in ["CBAM", "FusionSSD", "CBAM_FiLM", "FusionSSD_FiLM", "FusionSSD_SelfAttention", "LearnableAlign", "VLCAM", "VLC", "CGB", "VLCA", "VLCA_Cross", "CrossCBAM_AdaLN", "CrossCBAM_DiT", "CrossCBAM_DiT_V2", "CrossCBAM_DiT_V3", "CrossCBAM_DiT_V4", "CrossCBAM_DiT_V5", "CrossCBAM_DiT_V6", "CrossCBAM_DiT_V7", "CrossCBAM_DiT_V8", "CrossCBAM_DiT_V9", "CrossCBAM_DiT_V10", "CrossCBAM_DiT_V11"]:
+        if ensemble_method not in ["CBAM", "FusionSSD", "FusionSSD_SelfAttention", "LearnableAlign", "VLCFusion"]:
             raise NotImplementedError(f"Ensemble method {ensemble_method} not implemented")
         self.ensemble_method = ensemble_method
 
@@ -86,17 +86,6 @@ class MultimodalDetr(nn.Module):
                 nn.ReLU(),
             )
         
-        elif self.ensemble_method == "FusionSSD_FiLM": 
-            in_channels = 512
-            out_channels = 256
-            cond_dim = n_conditions
-            
-            from multimodal_detr_utils import FusionSSDFiLMTransformLayer, FusionSSDFiLMTransformQueries
-            
-            self.transform_layer = FusionSSDFiLMTransformLayer(in_channels=in_channels, out_channels=out_channels, cond_dim=cond_dim)
-            self.transform_queries = FusionSSDFiLMTransformQueries(in_channels=in_channels, out_channels=out_channels, cond_dim=cond_dim)
-            
-        
         elif self.ensemble_method == "CBAM":
             from multimodal_detr_utils import CBAM
             
@@ -132,17 +121,6 @@ class MultimodalDetr(nn.Module):
                 nn.ReLU(),
             )
         
-        elif self.ensemble_method == "CBAM_FiLM":
-            from multimodal_detr_utils import CBAMFiLMTransformLayer, CBAMFiLMTransformQueries
-            
-            in_channels = 512
-            out_channels = 256
-            r = 2
-            cond_dim = n_conditions
-            
-            self.transform_layer = CBAMFiLMTransformLayer(in_channels=in_channels, out_channels=out_channels, r=r, cond_dim=cond_dim)
-            self.transform_queries = CBAMFiLMTransformQueries(in_channels=in_channels, out_channels=out_channels , r=r, cond_dim=cond_dim)
-        
         elif self.ensemble_method == "FusionSSD_SelfAttention":
             from multimodal_detr_utils import FusionSSDSelfAttentionTransformLayer, FusionSSDSelfAttentionTransformQueries
             
@@ -163,170 +141,15 @@ class MultimodalDetr(nn.Module):
             self.transform_layer = LearnableAlignTransformLayer(in_channels=in_channels, out_channels=out_channels)
             self.transform_queries = LearnableAlignTransformQueries(in_channels=in_channels, out_channels=out_channels)
         
-        elif self.ensemble_method == "VLCAM":
-            from mh_vlcam_utils import MHVLCAMTransformLayer, MHVLCAMTransformQueries
-            
+        elif self.ensemble_method == "VLCFusion":
+            from vlc_fusion_utils import VLCFusionTransformLayer, VLCFusionTransformQueries
             in_channels = 512
             out_channels = 256
             cond_dim = n_conditions
             r = 2
-            n_heads = 2
-            
-            self.transform_layer = MHVLCAMTransformLayer(in_channels=in_channels, out_channels=out_channels, cond_dim=cond_dim, r=r, n_heads=n_heads)
-            self.transform_queries = MHVLCAMTransformQueries(in_channels=in_channels, out_channels=out_channels , cond_dim=cond_dim, r=r, n_heads=n_heads)
-        
-        elif self.ensemble_method == "VLC":
-            from vlc_utils import VLCTransformLayer, VLCTransformQueries
-            
-            in_channels = 512
-            out_channels = 256
-            cond_dim = n_conditions
-            r = 2
-            n_heads = 2
-            
-            self.transform_layer = VLCTransformLayer(in_channels=in_channels, out_channels=out_channels, cond_dim=cond_dim, r=r, n_heads=n_heads)
-            self.transform_queries = VLCTransformQueries(in_channels=in_channels, out_channels=out_channels, cond_dim=cond_dim, r=r, n_heads=n_heads)
-        
-        elif self.ensemble_method == "CGB":
-            from cgb_utils import CGBTransformLayer, CGBTransformQueries
-            
-            in_channels = 512
-            out_channels = 256
-            cond_dim = n_conditions
-            r = 4
-            
-            self.transform_layer = CGBTransformLayer(in_channels=in_channels, out_channels=out_channels, cond_dim=cond_dim, r=r)
-            self.transform_queries = CGBTransformQueries(in_channels=in_channels, out_channels=out_channels, cond_dim=cond_dim, r=r)
-        
-        elif self.ensemble_method == "VLCA":
-            from vlca_utils import VLCATransformLayer, VLCATransformQueries
-            
-            in_channels = 512
-            out_channels = 256
-            cond_dim = n_conditions
-            r = 4
-            
-            self.transform_layer = VLCATransformLayer(in_channels=in_channels, out_channels=out_channels, cond_dim=cond_dim, r=r)
-            self.transform_queries = VLCATransformQueries(in_channels=in_channels, out_channels=out_channels, cond_dim=cond_dim, r=r)
-        
-        elif self.ensemble_method == "VLCA_Cross":
-            from vlca_utils import VLCACrossTransformLayer, VLCACrossTransformQueries
-            
-            in_channels = 512
-            out_channels = 256
-            cond_dim = n_conditions
-            r = 4
-            
-            self.transform_layer = VLCACrossTransformLayer(in_channels=in_channels, out_channels=out_channels, cond_dim=cond_dim, r=r)
-            self.transform_queries = VLCACrossTransformQueries(in_channels=in_channels, out_channels=out_channels, cond_dim=cond_dim, r=r)
+            self.transform_layer = VLCFusionTransformLayer(in_channels=in_channels, out_channels=out_channels, cond_dim=cond_dim, r=r, num_blocks=num_vlc_blocks)
+            self.transform_queries = VLCFusionTransformQueries(in_channels=in_channels, out_channels=out_channels, cond_dim=cond_dim, r=r, num_blocks=num_vlc_blocks)
 
-        elif self.ensemble_method == "CrossCBAM_AdaLN":
-            from cross_cbam_adaln_utils import CrossCBAMAdaLNTransformLayer, CrossCBAMAdaLNTransformQueries
-            in_channels = 512
-            out_channels = 256
-            cond_dim = n_conditions
-            r = 2
-            self.transform_layer = CrossCBAMAdaLNTransformLayer(in_channels=in_channels, out_channels=out_channels, cond_dim=cond_dim, r=r)
-            self.transform_queries = CrossCBAMAdaLNTransformQueries(in_channels=in_channels, out_channels=out_channels, cond_dim=cond_dim, r=r)
-
-        elif self.ensemble_method == "CrossCBAM_DiT":
-            from cross_cbam_dit_utils import CrossCBAMDiTTransformLayer, CrossCBAMDiTTransformQueries
-            in_channels = 512
-            out_channels = 256
-            cond_dim = n_conditions
-            r = 2
-            self.transform_layer = CrossCBAMDiTTransformLayer(in_channels=in_channels, out_channels=out_channels, cond_dim=cond_dim, r=r)
-            self.transform_queries = CrossCBAMDiTTransformQueries(in_channels=in_channels, out_channels=out_channels, cond_dim=cond_dim, r=r)
-        
-        elif self.ensemble_method == "CrossCBAM_DiT_V2":
-            from cross_cbam_dit_v2_utils import CrossCBAMDiTTransformLayerV2, CrossCBAMDiTTransformQueriesV2
-            in_channels = 512
-            out_channels = 256
-            cond_dim = n_conditions
-            r = 2
-            self.transform_layer = CrossCBAMDiTTransformLayerV2(in_channels=in_channels, out_channels=out_channels, cond_dim=cond_dim, r=r)
-            self.transform_queries = CrossCBAMDiTTransformQueriesV2(in_channels=in_channels, out_channels=out_channels, cond_dim=cond_dim, r=r)
-        
-        elif self.ensemble_method == "CrossCBAM_DiT_V3":
-            from cross_cbam_dit_v3_utils import CrossCBAMDiTTransformLayerV3, CrossCBAMDiTTransformQueriesV3
-            in_channels = 512
-            out_channels = 256
-            cond_dim = n_conditions
-            r = 2
-            self.transform_layer = CrossCBAMDiTTransformLayerV3(in_channels=in_channels, out_channels=out_channels, cond_dim=cond_dim, r=r)
-            self.transform_queries = CrossCBAMDiTTransformQueriesV3(in_channels=in_channels, out_channels=out_channels, cond_dim=cond_dim, r=r)
-            
-        elif self.ensemble_method == "CrossCBAM_DiT_V4":
-            from cross_cbam_dit_v4_utils import CrossCBAMDiTTransformLayerV4, CrossCBAMDiTTransformQueriesV4
-            in_channels = 512
-            out_channels = 256
-            cond_dim = n_conditions
-            r = 2
-            self.transform_layer = CrossCBAMDiTTransformLayerV4(in_channels=in_channels, out_channels=out_channels, cond_dim=cond_dim, r=r)
-            self.transform_queries = CrossCBAMDiTTransformQueriesV4(in_channels=in_channels, out_channels=out_channels, cond_dim=cond_dim, r=r)
-        
-        elif self.ensemble_method == "CrossCBAM_DiT_V5":
-            from cross_cbam_dit_v5_utils import CrossCBAMDiTTransformLayerV5, CrossCBAMDiTTransformQueriesV5
-            in_channels = 512
-            out_channels = 256
-            cond_dim = n_conditions
-            r = 2
-            self.transform_layer = CrossCBAMDiTTransformLayerV5(in_channels=in_channels, out_channels=out_channels, cond_dim=cond_dim, r=r)
-            self.transform_queries = CrossCBAMDiTTransformQueriesV5(in_channels=in_channels, out_channels=out_channels, cond_dim=cond_dim, r=r)
-        
-        elif self.ensemble_method == "CrossCBAM_DiT_V6":
-            from cross_cbam_dit_v6_utils import CrossCBAMDiTTransformLayerV6, CrossCBAMDiTTransformQueriesV6
-            in_channels = 512
-            out_channels = 256
-            cond_dim = n_conditions
-            r = 2
-            self.transform_layer = CrossCBAMDiTTransformLayerV6(in_channels=in_channels, out_channels=out_channels, cond_dim=cond_dim, r=r)
-            self.transform_queries = CrossCBAMDiTTransformQueriesV6(in_channels=in_channels, out_channels=out_channels, cond_dim=cond_dim, r=r)
-        
-        elif self.ensemble_method == "CrossCBAM_DiT_V7":
-            from cross_cbam_dit_v7_utils import CrossCBAMDiTTransformLayerV7, CrossCBAMDiTTransformQueriesV7
-            in_channels = 512
-            out_channels = 256
-            cond_dim = n_conditions
-            r = 2
-            self.transform_layer = CrossCBAMDiTTransformLayerV7(in_channels=in_channels, out_channels=out_channels, cond_dim=cond_dim, r=r)
-            self.transform_queries = CrossCBAMDiTTransformQueriesV7(in_channels=in_channels, out_channels=out_channels, cond_dim=cond_dim, r=r)
-        
-        elif self.ensemble_method == "CrossCBAM_DiT_V8":
-            from cross_cbam_dit_v8_utils import CrossCBAMDiTTransformLayerV8, CrossCBAMDiTTransformQueriesV8
-            in_channels = 512
-            out_channels = 256
-            cond_dim = n_conditions
-            r = 2
-            self.transform_layer = CrossCBAMDiTTransformLayerV8(in_channels=in_channels, out_channels=out_channels, cond_dim=cond_dim, r=r)
-            self.transform_queries = CrossCBAMDiTTransformQueriesV8(in_channels=in_channels, out_channels=out_channels, cond_dim=cond_dim, r=r)
-        
-        elif self.ensemble_method == "CrossCBAM_DiT_V9":
-            from cross_cbam_dit_v9_utils import CrossCBAMDiTTransformLayerV9, CrossCBAMDiTTransformQueriesV9
-            in_channels = 512
-            out_channels = 256
-            cond_dim = n_conditions
-            r = 2
-            self.transform_layer = CrossCBAMDiTTransformLayerV9(in_channels=in_channels, out_channels=out_channels, cond_dim=cond_dim, r=r)
-            self.transform_queries = CrossCBAMDiTTransformQueriesV9(in_channels=in_channels, out_channels=out_channels, cond_dim=cond_dim, r=r)
-        
-        elif self.ensemble_method == "CrossCBAM_DiT_V10":
-            from cross_cbam_dit_v10_utils import CrossCBAMDiTTransformLayerV10, CrossCBAMDiTTransformQueriesV10
-            in_channels = 512
-            out_channels = 256
-            cond_dim = n_conditions
-            r = 2
-            self.transform_layer = CrossCBAMDiTTransformLayerV10(in_channels=in_channels, out_channels=out_channels, cond_dim=cond_dim, r=r)
-            self.transform_queries = CrossCBAMDiTTransformQueriesV10(in_channels=in_channels, out_channels=out_channels, cond_dim=cond_dim, r=r)
-        
-        elif self.ensemble_method == "CrossCBAM_DiT_V11":
-            from cross_cbam_dit_v11_utils import CrossCBAMDiTTransformLayerV11, CrossCBAMDiTTransformQueriesV11
-            in_channels = 512
-            out_channels = 256
-            cond_dim = n_conditions
-            r = 2
-            self.transform_layer = CrossCBAMDiTTransformLayerV11(in_channels=in_channels, out_channels=out_channels, cond_dim=cond_dim, r=r, num_blocks=num_vlc_blocks)
-            self.transform_queries = CrossCBAMDiTTransformQueriesV11(in_channels=in_channels, out_channels=out_channels, cond_dim=cond_dim, r=r, num_blocks=num_vlc_blocks)
     def forward( 
         self,
         pixel_values:torch.FloatTensor, 
@@ -343,7 +166,7 @@ class MultimodalDetr(nn.Module):
     ) -> Union[Tuple[torch.FloatTensor], DetrModelOutput]:
         
         # Get image_ids
-        if "FiLM" in self.ensemble_method.split("_") or self.ensemble_method in ["VLCAM", "VLC", "CGB", "VLCA", "VLCA_Cross", "CrossCBAM_AdaLN", "CrossCBAM_DiT", "CrossCBAM_DiT_V2", "CrossCBAM_DiT_V3", "CrossCBAM_DiT_V4", "CrossCBAM_DiT_V5", "CrossCBAM_DiT_V6", "CrossCBAM_DiT_V7", "CrossCBAM_DiT_V8", "CrossCBAM_DiT_V9", "CrossCBAM_DiT_V10", "CrossCBAM_DiT_V11"]:
+        if self.ensemble_method == "VLCFusion":
             conditions_tensor = torch.stack(
                 [label["conditions"].detach().clone().to(dtype=torch.float, device=self.device) for label in labels],
                 dim=0
@@ -373,7 +196,7 @@ class MultimodalDetr(nn.Module):
         
         # Concatenate the feature maps
         feature_map = torch.cat((projected_feature_map_ir, projected_feature_map_rgb), dim=1)
-        if "FiLM" in self.ensemble_method.split("_") or self.ensemble_method in ["VLCAM", "VLC", "CGB", "VLCA", "VLCA_Cross", "CrossCBAM_AdaLN", "CrossCBAM_DiT", "CrossCBAM_DiT_V2", "CrossCBAM_DiT_V3", "CrossCBAM_DiT_V4", "CrossCBAM_DiT_V5", "CrossCBAM_DiT_V6", "CrossCBAM_DiT_V7", "CrossCBAM_DiT_V8", "CrossCBAM_DiT_V9", "CrossCBAM_DiT_V10", "CrossCBAM_DiT_V11"]:
+        if self.ensemble_method == "VLCFusion":
             feature_map = self.transform_layer(feature_map, conditions_tensor)
         else:
             feature_map = self.transform_layer(feature_map)
@@ -382,7 +205,7 @@ class MultimodalDetr(nn.Module):
         object_queries_ir = object_queries_list_ir[-1]
         object_queries_rgb = object_queries_list_rgb[-1]
         object_queries = torch.cat((object_queries_ir, object_queries_rgb), dim=1)
-        if "FiLM" in self.ensemble_method.split("_") or self.ensemble_method in ["VLCAM", "VLC", "CGB", "VLCA", "VLCA_Cross", "CrossCBAM_AdaLN", "CrossCBAM_DiT", "CrossCBAM_DiT_V2", "CrossCBAM_DiT_V3", "CrossCBAM_DiT_V4", "CrossCBAM_DiT_V5", "CrossCBAM_DiT_V6", "CrossCBAM_DiT_V7", "CrossCBAM_DiT_V8", "CrossCBAM_DiT_V9", "CrossCBAM_DiT_V10", "CrossCBAM_DiT_V11"]:
+        if self.ensemble_method == "VLCFusion":
             object_queries = self.transform_queries(object_queries, conditions_tensor)
         else:
             object_queries = self.transform_queries(object_queries)

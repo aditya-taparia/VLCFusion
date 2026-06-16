@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 """
-Standalone evaluation script for multimodal ensemble (e.g. CrossCBAM_AdaLN).
+Standalone evaluation script for multimodal ensemble (e.g. VLCFusion).
 Uses the original albumentations + image_processor data pipeline so that
 results are consistent with models trained under that preprocessing.
 
 Usage (seen scenario — default):
-  python run_eval_ensemble.py --checkpoint_dir models/45k_corssbam_fusion_7_cond_fusion/checkpoint-4275 --ensemble_method CrossCBAM_AdaLN
+  python run_eval_ensemble.py --checkpoint_dir models/45k_corssbam_fusion_7_cond_fusion/checkpoint-4275 --ensemble_method VLCFusion
 
 Usage (unseen scenario):
-  python run_eval_ensemble.py --checkpoint_dir models/45k_corssbam_fusion_7_cond_fusion/checkpoint-4275 --ensemble_method CrossCBAM_AdaLN --scenario unseen
+  python run_eval_ensemble.py --checkpoint_dir models/45k_corssbam_fusion_7_cond_fusion/checkpoint-4275 --ensemble_method VLCFusion --scenario unseen
 """
 
 import argparse
@@ -245,7 +245,7 @@ def prepare_eval_dataset(
 
 def run_eval(
     checkpoint_dir: str,
-    ensemble_method: str = "CrossCBAM_AdaLN",
+    ensemble_method: str = "VLCFusion",
     scenario: str = "seen",
     visible_dataset_dir: str = None,
     ir_dataset_dir: str = None,
@@ -376,7 +376,7 @@ def main():
     parser = argparse.ArgumentParser(description="Evaluate multimodal ensemble on test set.")
     parser.add_argument("--checkpoint_dir", type=str, required=True,
                         help="Path to checkpoint (e.g. models/45k_corssbam_fusion_7_cond_fusion/checkpoint-4275)")
-    parser.add_argument("--ensemble_method", type=str, default="CrossCBAM_AdaLN",
+    parser.add_argument("--ensemble_method", type=str, default="VLCFusion",
                         help="Ensemble method (must match how the checkpoint was trained)")
     parser.add_argument("--scenario", type=str, default="seen", choices=["seen", "unseen"],
                         help="Evaluation scenario: 'seen' or 'unseen' (switches dataset dirs and test conditions)")

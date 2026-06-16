@@ -42,12 +42,12 @@ class ModelArguments:
         metadata={"help": "Base DETR model name for image processor and initial config."}
     )
     ensemble_method: str = field(
-        default="VLCAM",
-        metadata={"help": "Method for ensembling/fusing the multimodal features."}
+        default="VLCFusion",
+        metadata={"help": "Method for ensembling/fusing the multimodal features. One of: CBAM, FusionSSD, FusionSSD_SelfAttention, LearnableAlign, VLCFusion."}
     )
     num_vlc_blocks: int = field(
         default=2,
-        metadata={"help": "Number of stacked VLC blocks in the fusion head (CrossCBAM_DiT_V11 only). Paper default 2; ablation sweeps 2/4/6/8."}
+        metadata={"help": "Number of stacked VLC blocks in the fusion head (VLCFusion only). Paper default 2; ablation sweeps 2/4/6/8."}
     )
     # Add any other model-specific hyperparameters here
 

@@ -195,7 +195,7 @@ class VLCBlock(nn.Module):
 # Fusion block
 # =============================================================================
 
-class CrossCBAMDiTFusionV11(nn.Module):
+class VLCFusion(nn.Module):
     """
     x1 -> VLCBlock -> s1
     x2 -> VLCBlock -> s2
@@ -259,7 +259,7 @@ class CrossCBAMDiTFusionV11(nn.Module):
 # Transform wrappers (drop-in for MultimodalDetr: concat input -> single output)
 # =============================================================================
 
-class CrossCBAMDiTTransformLayerV11(nn.Module):
+class VLCFusionTransformLayer(nn.Module):
     def __init__(
         self,
         in_channels: int,
@@ -270,7 +270,7 @@ class CrossCBAMDiTTransformLayerV11(nn.Module):
         num_blocks: int = 2,
     ):
         super().__init__()
-        self.fusion = CrossCBAMDiTFusionV11(
+        self.fusion = VLCFusion(
             mod1_channels=in_channels // 2,
             mod2_channels=in_channels // 2,
             out_channels=out_channels,
@@ -285,7 +285,7 @@ class CrossCBAMDiTTransformLayerV11(nn.Module):
         return self.fusion(x[:, :c], x[:, c:], conditions)
 
 
-class CrossCBAMDiTTransformQueriesV11(nn.Module):
+class VLCFusionTransformQueries(nn.Module):
     def __init__(
         self,
         in_channels: int,
@@ -296,7 +296,7 @@ class CrossCBAMDiTTransformQueriesV11(nn.Module):
         num_blocks: int = 2,
     ):
         super().__init__()
-        self.fusion = CrossCBAMDiTFusionV11(
+        self.fusion = VLCFusion(
             mod1_channels=in_channels // 2,
             mod2_channels=in_channels // 2,
             out_channels=out_channels,
@@ -332,24 +332,24 @@ if __name__ == "__main__":
     cond = torch.randn(B, cond_dim)
 
     # --- Shape tests ---
-    fusion = CrossCBAMDiTFusionV11(
+    fusion = VLCFusion(
         mod1_channels=C, mod2_channels=C, out_channels=C, cond_dim=cond_dim, r=2,
     )
     out = fusion(x1, x2, cond)
-    print(f"CrossCBAMDiTFusionV11: ({x1.shape}, {x2.shape}) + cond -> {out.shape}")
+    print(f"VLCFusion: ({x1.shape}, {x2.shape}) + cond -> {out.shape}")
     assert out.shape == (B, C, H, W)
 
     in_ch, out_ch = 512, 256
     x_cat = torch.randn(B, in_ch, H, W)
-    layer = CrossCBAMDiTTransformLayerV11(in_ch, out_ch, cond_dim=cond_dim, r=2)
+    layer = VLCFusionTransformLayer(in_ch, out_ch, cond_dim=cond_dim, r=2)
     out_layer = layer(x_cat, cond)
-    print(f"CrossCBAMDiTTransformLayerV11: {x_cat.shape} -> {out_layer.shape}")
+    print(f"VLCFusionTransformLayer: {x_cat.shape} -> {out_layer.shape}")
     assert out_layer.shape == (B, out_ch, H, W)
 
-    queries = CrossCBAMDiTTransformQueriesV11(in_ch, out_ch, cond_dim=cond_dim, r=2)
+    queries = VLCFusionTransformQueries(in_ch, out_ch, cond_dim=cond_dim, r=2)
     x_q = torch.randn(B, in_ch, 1, 1)
     out_q = queries(x_q, cond)
-    print(f"CrossCBAMDiTTransformQueriesV11: {x_q.shape} -> {out_q.shape}")
+    print(f"VLCFusionTransformQueries: {x_q.shape} -> {out_q.shape}")
     assert out_q.shape == (B, out_ch, 1, 1)
 
     total = sum(p.numel() for p in fusion.parameters())
