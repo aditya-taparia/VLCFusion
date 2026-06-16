@@ -1,5 +1,3 @@
-from .cbam_ensemble_vlm import CBAMEnsembleVLM
-from .multi_cbam_ensemble_vlm import MultiCBAMEnsembleVLM
-from .cbam_ensemble_vlm_film import CBAMEnsembleVLMFiLM
+from .vlc_fusion import VLCFusion
 
-__all__ = ['CBAMEnsembleVLM', 'MultiCBAMEnsembleVLM', 'CBAMEnsembleVLMFiLM']
+__all__ = ['VLCFusion']

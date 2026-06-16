@@ -33,7 +33,7 @@ import json
 
 
 # =============================================================================
-# Building blocks from cross_cbam_dit_v11_utils
+# VLC fusion building blocks (CBAM + FiLM + DiT-style conditioned blocks)
 # =============================================================================
 
 def _num_groups(channels: int, desired: int = 8) -> int:
@@ -189,7 +189,7 @@ class VLCBlock(nn.Module):
             return out1
 
 
-class CrossCBAMDiTFusionV11(nn.Module):
+class VLCFusionHead(nn.Module):
     """
     concat(x1, x2) -> MultiHeadFusionBottleneck -> VLCBlock -> VLCBlock -> output
     """
@@ -231,10 +231,10 @@ class CrossCBAMDiTFusionV11(nn.Module):
 @MODELS.register_module()
 class VLCFusion(Base3DDetector):
     """
-    CrossCBAM-DiT V11 variant of the LiDAR+RGB ensemble detector with
+    VLCFusion: LiDAR+RGB ensemble detector with
     VLC-block fusion conditioned on VLM environment descriptors.
 
-    Replaces ConcatHeadWithCBAM with CrossCBAMDiTFusionV11:
+    Fusion via VLCFusionHead:
       LiDAR feats (384ch) + RGB feats (256ch) ->
         MultiHeadFusionBottleneck -> VLCBlock -> VLCBlock -> backbone -> neck -> head
     """
@@ -333,8 +333,8 @@ class VLCFusion(Base3DDetector):
             nn.ReLU(inplace=True),
         )
 
-        # CrossCBAM-DiT V11 fusion: LiDAR 384ch + RGB 256ch -> 384ch
-        self.fusion_head = CrossCBAMDiTFusionV11(
+        # VLC fusion: LiDAR 384ch + RGB 256ch -> 384ch
+        self.fusion_head = VLCFusionHead(
             mod1_channels=384,
             mod2_channels=256,
             out_channels=384,
@@ -480,7 +480,7 @@ class VLCFusion(Base3DDetector):
         cond_vec = torch.as_tensor(
             np.stack(batched_conditions, axis=0), dtype=torch.float, device=lidar_x.device)
 
-        # CrossCBAM-DiT V11 fusion (replaces concat + ConcatHeadWithCBAM)
+        # VLC fusion of LiDAR + RGB features
         x = self.fusion_head(lidar_x, rgb_x, cond_vec)
 
         x = self.backbone(x)
