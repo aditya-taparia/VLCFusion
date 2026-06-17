@@ -4,17 +4,17 @@ Evaluation script for trained Waymo 3D detection models.
 Usage:
     # Evaluate on night-day validation set:
     python eval.py --config configs/vlc_fusion_10_conditions.py \
-                   --checkpoint YOUR_PATH/vlc_fusion_10_conditions/epoch_40.pth \
+                   --checkpoint YOUR_PATH/vlc_fusion_10_conditions/epoch_30.pth \
                    --split val
 
     # Evaluate on dawn-dusk test set:
     python eval.py --config configs/vlc_fusion_10_conditions.py \
-                   --checkpoint YOUR_PATH/vlc_fusion_10_conditions/epoch_40.pth \
+                   --checkpoint YOUR_PATH/vlc_fusion_10_conditions/epoch_30.pth \
                    --split test
 
     # Evaluate both splits:
     python eval.py --config configs/vlc_fusion_10_conditions.py \
-                   --checkpoint YOUR_PATH/vlc_fusion_10_conditions/epoch_40.pth \
+                   --checkpoint YOUR_PATH/vlc_fusion_10_conditions/epoch_30.pth \
                    --split both
 """
 import argparse

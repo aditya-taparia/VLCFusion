@@ -1,197 +1,60 @@
 #!/usr/bin/env python3
 """
-Standalone evaluation script for multimodal ensemble (e.g. VLCFusion).
-Uses the original albumentations + image_processor data pipeline so that
-results are consistent with models trained under that preprocessing.
+Standalone evaluation script for the multimodal ensemble (e.g. VLCFusion).
 
-Usage (seen scenario — default):
-  python run_eval_ensemble.py --checkpoint_dir models/45k_corssbam_fusion_7_cond_fusion/checkpoint-4275 --ensemble_method VLCFusion
+This uses the SAME torchvision-v2 preprocessing pipeline that the trainer uses
+for its validation/test evaluation (anisotropic Resize to image_size x image_size
++ ImageNet normalization, with bounding boxes carried through as tv_tensors).
+
+This matters: an earlier version of this script used an albumentations + image
+processor pipeline (aspect-preserving resize + padding). That geometry does not
+match how the models are trained (square resize), so for ATR's very small
+targets the predicted boxes were shifted by tens of pixels and mAP collapsed to
+~0. Reusing the trainer's exact functions guarantees the standalone numbers
+match the trainer's own test_results.json.
+
+Usage (seen scenario - default):
+  python run_eval_ensemble.py --checkpoint_dir models/45k_vlcfusion_2blocks_7cond/checkpoint-XXXX --ensemble_method VLCFusion
 
 Usage (unseen scenario):
-  python run_eval_ensemble.py --checkpoint_dir models/45k_corssbam_fusion_7_cond_fusion/checkpoint-4275 --ensemble_method VLCFusion --scenario unseen
+  python run_eval_ensemble.py --checkpoint_dir models/45k_vlcfusion_2blocks_7cond/checkpoint-XXXX --ensemble_method VLCFusion --scenario unseen
 """
 
 import argparse
 import logging
 import os
-import sys
 from functools import partial
-from typing import Any, Dict, List, Mapping, Optional, Tuple, Union
+from typing import Any, Dict, Optional
 
-import albumentations as A
 import numpy as np
 import torch
 from datasets import DatasetDict, concatenate_datasets, load_dataset
+from torchvision.transforms import v2
 from transformers import AutoConfig, AutoImageProcessor, Trainer, TrainingArguments
-from transformers.image_processing_utils import BatchFeature
-from transformers.image_transforms import center_to_corners_format
-from transformers.trainer import EvalPrediction
-from torchmetrics.detection.mean_ap import MeanAveragePrecision
 
+# Reuse the trainer's exact preprocessing / metrics so results are identical to
+# the trainer's own validation/test evaluation.
 from ensemble_trainer import (
     DataArguments,
-    MultimodalTrainer,
+    augment_and_transform_batch_multimodal,
+    collate_fn_multimodal,
+    compute_detection_metrics,
     get_effective_conditions_and_count,
 )
 from multimodal_detr import MultimodalDetr
 
 
 # ---------------------------------------------------------------------------
-# Data helpers (original albumentations + image_processor pipeline)
-# ---------------------------------------------------------------------------
-
-def format_image_annotations_as_coco(
-    image_id: str, categories: List[int], areas: List[float], bboxes: List[Tuple[float, ...]]
-) -> Dict[str, Any]:
-    annotations = []
-    for category, area, bbox in zip(categories, areas, bboxes):
-        annotations.append({
-            "image_id": image_id,
-            "category_id": category,
-            "iscrowd": 0,
-            "area": area,
-            "bbox": list(bbox),
-        })
-    return {"image_id": image_id, "annotations": annotations}
-
-
-def convert_bbox_yolo_to_pascal(boxes: torch.Tensor, image_size: Tuple[int, int]) -> torch.Tensor:
-    boxes = center_to_corners_format(boxes)
-    height, width = image_size
-    boxes = boxes * torch.tensor([[width, height, width, height]], device=boxes.device)
-    return boxes
-
-
-class ModelOutput:
-    def __init__(self, logits: torch.Tensor, pred_boxes: torch.Tensor):
-        self.logits = logits
-        self.pred_boxes = pred_boxes
-
-
-def augment_and_transform_batch_legacy(
-    examples: Mapping[str, Any],
-    transform: A.Compose,
-    image_processor: AutoImageProcessor,
-    conditions_data: Dict[str, Any],
-    indices_to_sample: Optional[np.ndarray],
-    return_pixel_mask: bool = False,
-) -> BatchFeature:
-    """Original preprocessing: albumentations + image_processor for each modality."""
-
-    ir_images, ir_annotations = [], []
-    for image_id, image, objects in zip(
-        examples["ir_image_id"], examples["ir_image"], examples["ir_objects"]
-    ):
-        image_np = np.array(image.convert("RGB"))
-        output = transform(image=image_np, bboxes=objects["bbox"], category=objects["category"])
-        ir_images.append(output["image"])
-        ir_annotations.append(format_image_annotations_as_coco(
-            image_id, output["category"], objects["area"], output["bboxes"]
-        ))
-
-    ir_result = image_processor(images=ir_images, annotations=ir_annotations, return_tensors="pt")
-
-    vis_images = []
-    for image in examples["vis_image"]:
-        image_np = np.array(image.convert("RGB"))
-        output = transform(image=image_np, bboxes=[], category=[])
-        vis_images.append(output["image"])
-
-    vis_result = image_processor(images=vis_images, annotations=[{"image_id": 0, "annotations": []}] * len(vis_images), return_tensors="pt")
-
-    ir_result["pixel_values"] = torch.cat([ir_result["pixel_values"], vis_result["pixel_values"]], dim=1)
-
-    for label in ir_result["labels"]:
-        img_id_val = label["image_id"]
-        image_id_str = str(img_id_val.item()) if hasattr(img_id_val, "item") else str(img_id_val)
-        conditions = conditions_data.get(image_id_str)
-
-        if conditions is None:
-            n = indices_to_sample.shape[0] if indices_to_sample is not None else 1
-            cond_tensor = torch.zeros(n, dtype=torch.float)
-        else:
-            if isinstance(conditions[0], bool):
-                cond_tensor = torch.tensor([1.0 if c else 0.0 for c in conditions], dtype=torch.float)
-            else:
-                cond_tensor = torch.tensor(conditions, dtype=torch.float)
-            if indices_to_sample is not None:
-                cond_tensor = cond_tensor[indices_to_sample - 1]
-
-        label["conditions"] = cond_tensor
-
-    if not return_pixel_mask:
-        ir_result.pop("pixel_mask", None)
-
-    return ir_result
-
-
-def collate_fn(batch: List[BatchFeature]) -> Mapping[str, Union[torch.Tensor, List[Any]]]:
-    data = {"pixel_values": torch.stack([x["pixel_values"] for x in batch]),
-            "labels": [x["labels"] for x in batch]}
-    if "pixel_mask" in batch[0]:
-        data["pixel_mask"] = torch.stack([x["pixel_mask"] for x in batch])
-    return data
-
-
-@torch.no_grad()
-def compute_metrics_legacy(
-    evaluation_results: EvalPrediction,
-    image_processor: AutoImageProcessor,
-    threshold: float = 0.0,
-    id2label: Optional[Mapping[int, str]] = None,
-) -> Mapping[str, float]:
-    predictions, targets = evaluation_results.predictions, evaluation_results.label_ids
-
-    image_sizes = []
-    post_processed_targets = []
-    post_processed_predictions = []
-
-    for batch in targets:
-        batch_image_sizes = torch.tensor([x["orig_size"] for x in batch])
-        image_sizes.append(batch_image_sizes)
-        for image_target in batch:
-            boxes = torch.tensor(image_target["boxes"])
-            boxes = convert_bbox_yolo_to_pascal(boxes, image_target["orig_size"])
-            labels = torch.tensor(image_target["class_labels"])
-            post_processed_targets.append({"boxes": boxes, "labels": labels})
-
-    for batch, target_sizes in zip(predictions, image_sizes):
-        batch_logits, batch_boxes = batch[1], batch[2]
-        output = ModelOutput(logits=torch.tensor(batch_logits), pred_boxes=torch.tensor(batch_boxes))
-        post_processed_output = image_processor.post_process_object_detection(
-            output, threshold=threshold, target_sizes=target_sizes
-        )
-        post_processed_predictions.extend(post_processed_output)
-
-    if not post_processed_targets or not post_processed_predictions:
-        return {"map": 0.0}
-
-    metric = MeanAveragePrecision(box_format="xyxy", class_metrics=True)
-    metric.update(post_processed_predictions, post_processed_targets)
-    metrics = metric.compute()
-
-    classes = metrics.pop("classes")
-    map_per_class = metrics.pop("map_per_class")
-    mar_100_per_class = metrics.pop("mar_100_per_class")
-    for class_id, class_map, class_mar in zip(classes, map_per_class, mar_100_per_class):
-        class_name = id2label[class_id.item()] if id2label is not None else class_id.item()
-        metrics[f"map_{class_name}"] = class_map
-        metrics[f"mar_100_{class_name}"] = class_mar
-
-    return {k: round(v.item(), 4) for k, v in metrics.items()}
-
-
-# ---------------------------------------------------------------------------
-# Dataset preparation
+# Dataset preparation (torch-v2 pipeline, identical to trainer's eval path)
 # ---------------------------------------------------------------------------
 
 def prepare_eval_dataset(
     data_args: DataArguments,
     image_processor: AutoImageProcessor,
-    conditions_data: Dict[str, Any],
+    test_conditions: Dict[str, Any],
     indices_to_sample_conditions: Optional[np.ndarray],
 ) -> DatasetDict:
-    """Eval-only dataset prep using original albumentations + image_processor pipeline."""
+    """Eval-only dataset prep using the trainer's torch-v2 transform on the test split."""
     logging.info(f"Loading visible dataset from: {data_args.visible_dataset_dir}")
     vis_data = load_dataset("imagefolder", data_dir=data_args.visible_dataset_dir)
 
@@ -214,31 +77,34 @@ def prepare_eval_dataset(
     vis_data = prefix_and_align(vis_data, "vis")
     ir_data = prefix_and_align(ir_data, "ir")
 
-    processed_splits = {}
-    for split in vis_data.keys():
-        if split not in ir_data:
-            continue
-        if len(vis_data[split]) != len(ir_data[split]):
-            logging.warning(f"Length mismatch in {split}: Vis {len(vis_data[split])} vs IR {len(ir_data[split])}")
-        processed_splits[split] = concatenate_datasets([vis_data[split], ir_data[split]], axis=1)
+    if "test" not in vis_data or "test" not in ir_data:
+        raise ValueError("No 'test' split found in the visible/IR datasets.")
 
-    combined_dataset = DatasetDict(processed_splits)
-
-    eval_alb_transform = A.Compose(
-        [A.NoOp()],
-        bbox_params=A.BboxParams(format="coco", label_fields=["category"], clip=True),
-    )
-
-    for split in combined_dataset.keys():
-        combined_dataset[split] = combined_dataset[split].with_transform(
-            partial(
-                augment_and_transform_batch_legacy,
-                transform=eval_alb_transform,
-                image_processor=image_processor,
-                conditions_data=conditions_data,
-                indices_to_sample=indices_to_sample_conditions,
-            )
+    if len(vis_data["test"]) != len(ir_data["test"]):
+        logging.warning(
+            f"Length mismatch in test: Vis {len(vis_data['test'])} vs IR {len(ir_data['test'])}"
         )
+
+    combined_test = concatenate_datasets([vis_data["test"], ir_data["test"]], axis=1)
+    combined_dataset = DatasetDict({"test": combined_test})
+
+    # Trainer's eval transform: square resize + ImageNet normalize (boxes carried along).
+    eval_torch_transform = v2.Compose([
+        v2.Resize(size=(data_args.image_size, data_args.image_size), antialias=True),
+        v2.ToDtype(torch.float32, scale=True),
+        v2.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+    ])
+
+    combined_dataset["test"] = combined_dataset["test"].with_transform(
+        partial(
+            augment_and_transform_batch_multimodal,
+            transform=eval_torch_transform,
+            image_processor=image_processor,
+            all_conditions_data={"test": test_conditions},
+            current_split_name="test",
+            indices_to_sample_conditions=indices_to_sample_conditions,
+        )
+    )
 
     return combined_dataset
 
@@ -256,8 +122,9 @@ def run_eval(
     image_size: int = 480,
     batch_size: int = 8,
     threshold: float = 0.0,
+    num_vlc_blocks: int = 2,
 ):
-    """Run evaluation with the original albumentations + image_processor pipeline."""
+    """Run evaluation with the trainer's torch-v2 preprocessing pipeline."""
     logger = logging.getLogger(__name__)
     if not os.path.isdir(checkpoint_dir):
         raise FileNotFoundError(f"Checkpoint directory not found: {checkpoint_dir}")
@@ -324,6 +191,7 @@ def run_eval(
         config=model_config,
         ensemble_method=ensemble_method,
         n_conditions=n_conditions_eff,
+        num_vlc_blocks=num_vlc_blocks,
     )
 
     training_args = TrainingArguments(
@@ -335,10 +203,10 @@ def run_eval(
     )
 
     eval_compute_metrics_fn = partial(
-        compute_metrics_legacy,
+        compute_detection_metrics,
         image_processor=image_processor,
-        threshold=threshold,
         id2label=id2label,
+        threshold=threshold,
     )
 
     trainer = Trainer(
@@ -348,24 +216,46 @@ def run_eval(
         eval_dataset=combined_dataset["test"],
         tokenizer=image_processor,
         compute_metrics=eval_compute_metrics_fn,
-        data_collator=collate_fn,
+        data_collator=collate_fn_multimodal,
     )
 
     logger.info(f"Loading checkpoint: {checkpoint_dir}")
-    try:
-        trainer._load_from_checkpoint(checkpoint_dir)
-    except Exception as e:
-        err_msg = str(e).lower()
-        if "safetensor" in type(e).__name__.lower() or "header too small" in err_msg:
-            bin_path = os.path.join(checkpoint_dir, "pytorch_model.bin")
-            if os.path.isfile(bin_path):
-                state_dict = torch.load(bin_path, map_location="cpu", weights_only=True)
-                trainer.model.load_state_dict(state_dict, strict=False)
-                logger.info(f"Loaded from {bin_path} (safetensors corrupted).")
-            else:
-                raise FileNotFoundError(f"No pytorch_model.bin at {bin_path}.") from e
-        else:
-            raise
+    # Manual load with assign=True. MultimodalDetr is a custom nn.Module and does
+    # not define _keys_to_ignore_on_save, which trips up Trainer._load_from_checkpoint's
+    # post-load warning path. assign=True also avoids the "copying to a meta parameter
+    # (no-op)" issue that silently left backbone buffers unloaded.
+    st_path = os.path.join(checkpoint_dir, "model.safetensors")
+    bin_path = os.path.join(checkpoint_dir, "pytorch_model.bin")
+    if os.path.isfile(st_path):
+        from safetensors.torch import load_file as _safe_load
+        state_dict = _safe_load(st_path)
+    elif os.path.isfile(bin_path):
+        state_dict = torch.load(bin_path, map_location="cpu", weights_only=True)
+    else:
+        raise FileNotFoundError(f"No model.safetensors or pytorch_model.bin in {checkpoint_dir}.")
+
+    # Backward-compat: checkpoints trained before the VLC-block refactor stored the
+    # two stacked blocks as named attributes (.vlc_fused. / .vlc_fused2.). The
+    # refactored model stores them as a ModuleList (.vlc_blocks.0. / .vlc_blocks.1.).
+    # Remap old keys so legacy 2-block checkpoints (e.g. the paper's reference) load.
+    if any(".vlc_fused." in k or ".vlc_fused2." in k for k in state_dict):
+        remapped = {}
+        for k, v in state_dict.items():
+            if ".vlc_fused2." in k:
+                k = k.replace(".vlc_fused2.", ".vlc_blocks.1.")
+            elif ".vlc_fused." in k:
+                k = k.replace(".vlc_fused.", ".vlc_blocks.0.")
+            remapped[k] = v
+        state_dict = remapped
+        logger.info("Remapped legacy vlc_fused/vlc_fused2 keys -> vlc_blocks.0/.1")
+
+    load_result = trainer.model.load_state_dict(state_dict, strict=False, assign=True)
+    logger.info(
+        f"Loaded checkpoint: {len(load_result.missing_keys)} missing keys, "
+        f"{len(load_result.unexpected_keys)} unexpected keys."
+    )
+    if load_result.missing_keys:
+        logger.warning(f"Missing keys (first 10): {load_result.missing_keys[:10]}")
 
     logger.info("Running evaluation on test set...")
     metrics = trainer.evaluate(eval_dataset=combined_dataset["test"], metric_key_prefix="test")
@@ -375,7 +265,7 @@ def run_eval(
 def main():
     parser = argparse.ArgumentParser(description="Evaluate multimodal ensemble on test set.")
     parser.add_argument("--checkpoint_dir", type=str, required=True,
-                        help="Path to checkpoint (e.g. models/45k_corssbam_fusion_7_cond_fusion/checkpoint-4275)")
+                        help="Path to checkpoint (e.g. models/45k_vlcfusion_2blocks_7cond/checkpoint-XXXX)")
     parser.add_argument("--ensemble_method", type=str, default="VLCFusion",
                         help="Ensemble method (must match how the checkpoint was trained)")
     parser.add_argument("--scenario", type=str, default="seen", choices=["seen", "unseen"],
@@ -392,6 +282,7 @@ def main():
     parser.add_argument("--image_size", type=int, default=480)
     parser.add_argument("--batch_size", type=int, default=8)
     parser.add_argument("--threshold", type=float, default=0.0, help="Detection confidence threshold for mAP")
+    parser.add_argument("--num_vlc_blocks", type=int, default=2, help="Number of VLC blocks (must match training; VLCFusion only)")
     args = parser.parse_args()
 
     logging.basicConfig(format="%(asctime)s - %(levelname)s - %(message)s", level=logging.INFO)
@@ -410,6 +301,7 @@ def main():
         image_size=args.image_size,
         batch_size=args.batch_size,
         threshold=args.threshold,
+        num_vlc_blocks=args.num_vlc_blocks,
     )
     for k, v in sorted(metrics.items()):
         logger.info(f"  {k}: {v}")
