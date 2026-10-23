@@ -1,265 +1,331 @@
-# VLCFusion
+<h1 align="center">VLC Fusion: Vision-Language Conditioned Sensor Fusion for Robust Object Detection</h1>
 
-This project utilizes two datasets for training and evaluation: the **ATR Dataset** and the **Waymo Open Dataset**.
+<p align="center">
+  <b>ECML PKDD 2026</b> · Shortlisted for the Best Research Track Student Paper Award
+</p>
 
-## ATR Dataset 📝
-The ATR dataset, specifically the `cegr` (MWIR/Infrared) and `i1co` (Visible) video collections, is crucial for evaluating VLCFusion's multi-modal object detection capabilities.
+<p align="center">
+  <a href="https://doi.org/10.1007/978-3-032-37679-4_4" target="_blank" rel="noopener noreferrer"><img src="assets/paper-button.png" width="84" alt="Read the paper"></a>
+  &nbsp;
+  <a href="https://youtu.be/iFKvibdIzTg" target="_blank" rel="noopener noreferrer"><img src="assets/talk-button.png" width="84" alt="Watch the talk" title="Watch the talk on YouTube"></a>
+</p>
 
-### Preparation
-The following pipeline of Python scripts is provided to process the raw ATR data into a structured format suitable for training and evaluating VLCFusion. These scripts automate the parsing of proprietary annotation files, synchronization of Infrared and Visible video frames based on timestamps, extraction of images, and generation of detailed metadata files (`metadata.jsonl`) which include bounding box annotations.
+<table align="center" width="100%">
+  <tr>
+    <th colspan="2" align="center"><div align="center">Seen scenarios</div></th>
+    <th colspan="2" align="center"><div align="center">Unseen scenarios</div></th>
+  </tr>
+  <tr>
+    <th colspan="4" align="center"><div align="center">Waymo · Camera + LiDAR</div></th>
+  </tr>
+  <tr>
+    <td align="center" width="25%"><a href="assets/demo/waymo-seen.gif"><img src="assets/demo/waymo-seen.gif" width="100%" alt="WAYMO seen detection examples: day and night"></a></td>
+    <td align="center" width="25%"><a href="assets/demo/waymo-seen-2.gif"><img src="assets/demo/waymo-seen-2.gif" width="100%" alt="WAYMO seen detection examples: day and night"></a></td>
+    <td align="center" width="25%"><a href="assets/demo/waymo-unseen.gif"><img src="assets/demo/waymo-unseen.gif" width="100%" alt="WAYMO unseen detection examples: dawn/dusk"></a></td>
+    <td align="center" width="25%"><a href="assets/demo/waymo-unseen-2.gif"><img src="assets/demo/waymo-unseen-2.gif" width="100%" alt="WAYMO unseen detection examples: dawn/dusk"></a></td>
+  </tr>
+  <tr>
+    <td align="center" width="25%"><a href="assets/demo/waymo-seen-3.gif"><img src="assets/demo/waymo-seen-3.gif" width="100%" alt="WAYMO seen detection examples: day and night"></a></td>
+    <td align="center" width="25%"><a href="assets/demo/waymo-seen-4.gif"><img src="assets/demo/waymo-seen-4.gif" width="100%" alt="WAYMO seen detection examples: day and night"></a></td>
+    <td align="center" width="25%"><a href="assets/demo/waymo-unseen-3.gif"><img src="assets/demo/waymo-unseen-3.gif" width="100%" alt="WAYMO unseen detection examples: dawn/dusk"></a></td>
+    <td align="center" width="25%"><a href="assets/demo/waymo-unseen-4.gif"><img src="assets/demo/waymo-unseen-4.gif" width="100%" alt="WAYMO unseen detection examples: dawn/dusk"></a></td>
+  </tr>
+  <tr>
+    <th colspan="4" align="center"><div align="center">ATR · Visible + infrared</div></th>
+  </tr>
+  <tr>
+    <td align="center" width="25%"><a href="assets/demo/atr-seen.gif"><img src="assets/demo/atr-seen.gif" width="100%" alt="ATR seen detection examples: 1000 and 2000 meters"></a></td>
+    <td align="center" width="25%"><a href="assets/demo/atr-seen-2.gif"><img src="assets/demo/atr-seen-2.gif" width="100%" alt="ATR seen detection examples: 1000 and 2000 meters"></a></td>
+    <td align="center" width="25%"><a href="assets/demo/atr-unseen.gif"><img src="assets/demo/atr-unseen.gif" width="100%" alt="ATR unseen detection examples: 1500 and 3500 meters"></a></td>
+    <td align="center" width="25%"><a href="assets/demo/atr-unseen-2.gif"><img src="assets/demo/atr-unseen-2.gif" width="100%" alt="ATR unseen detection examples: 1500 and 2500 meters"></a></td>
+  </tr>
+  <tr>
+    <td align="center" width="25%"><a href="assets/demo/atr-seen-3.gif"><img src="assets/demo/atr-seen-3.gif" width="100%" alt="ATR seen detection examples: 3000 and 4000 meters"></a></td>
+    <td align="center" width="25%"><a href="assets/demo/atr-seen-4.gif"><img src="assets/demo/atr-seen-4.gif" width="100%" alt="ATR seen detection examples: 1000 and 2000 meters"></a></td>
+    <td align="center" width="25%"><a href="assets/demo/atr-unseen-3.gif"><img src="assets/demo/atr-unseen-3.gif" width="100%" alt="ATR unseen detection examples: 1500 and 3500 meters"></a></td>
+    <td align="center" width="25%"><a href="assets/demo/atr-unseen-4.gif"><img src="assets/demo/atr-unseen-4.gif" width="100%" alt="ATR unseen detection examples: 2500 and 3500 meters"></a></td>
+  </tr>
+</table>
 
-**Prerequisites for ATR Processing:**
-* You must acquire the ATR Dataset from the DSIAC website: [https://dsiac.dtic.mil/databases/atr-algorithm-development-image-database/](https://dsiac.dtic.mil/databases/atr-algorithm-development-image-database/).
-* **Important Video Format Note:** The raw video files obtained from DSIAC may not be in `.avi` format. You will need to manually convert them into `.avi` files using an appropriate file reader or conversion utility provided with the dataset or other compatible tools before using them with these processing scripts.
-* Ensure you have access to the corresponding annotation (`.agt` files) and the associated metric (`.bbox_met`) files for the video collections you download.
-* Python 3.x and the libraries listed in the main `requirements.txt` of this repository.
+## Overview
 
-**Expected Raw Data Structure:**
-Before running the processing scripts, organize your downloaded and (video-converted) ATR data into a directory structure similar to the following (adjust paths as per your setup):
+**Sensor reliability changes with the scene. Fusion should adapt with it.** A camera can provide detailed appearance information in daylight but struggle in darkness or glare. Other sensors offer complementary information, yet their usefulness also depends on the environment. Combining their features without accounting for these changes can make object detection brittle when conditions shift.
 
+**VLC Fusion** uses a vision-language model (VLM) to describe the context in which sensor fusion happens. It turns environmental cues into a condition vector that guides how features from different modalities are combined. The resulting detector can adapt its fusion to the current scene, improving robustness in both familiar and previously unseen conditions. See the [paper](https://doi.org/10.1007/978-3-032-37679-4_4) for the method and experimental results.
+
+## Repository guide
+
+| Path | Contents |
+| --- | --- |
+| [`ATR Experiment/`](ATR%20Experiment/) | Hugging Face DETR fusion, training, evaluation, and visible/infrared preprocessing |
+| [`ATR Experiment/vlc_fusion_utils.py`](ATR%20Experiment/vlc_fusion_utils.py) | VLC blocks and the ATR fusion head |
+| [`Waymo Experiment/`](Waymo%20Experiment/) | MMDetection3D fusion, TFRecord conversion, evaluation, and visualization |
+| [`Waymo Experiment/configs/cbam_ensemble_vlm/vlc_fusion.py`](Waymo%20Experiment/configs/cbam_ensemble_vlm/vlc_fusion.py) | Registered Waymo `VLCFusion` detector |
+| [`plots/`](plots/) | Figure scripts, reference notebooks, and exported figures |
+| [`assets/demo/`](assets/demo/) | Small prediction GIFs used above and their source manifest |
+| [`docs/DEVELOPMENT_HISTORY.md`](docs/DEVELOPMENT_HISTORY.md) | Final method, retained baselines, and archived prototypes |
+
+## Environment and prerequisites
+
+Use **separate Python 3.10 environments** for ATR and Waymo. Their PyTorch, NumPy, and detection-framework versions differ. The root `requirements.txt` is an overview; installing it alone installs no packages.
+
+| Experiment | Dependency reference | Main stack |
+| --- | --- | --- |
+| ATR | [`requirements.txt`](ATR%20Experiment/requirements.txt), [`environment snapshot`](ATR%20Experiment/requirements.lock.txt) | PyTorch, Transformers, Datasets, TorchMetrics, torchvision |
+| Waymo | [`requirements.txt`](Waymo%20Experiment/requirements.txt), [`environment snapshot`](Waymo%20Experiment/requirements.lock.txt) | PyTorch, MMEngine/MMCV/MMDetection3D, TensorFlow, Waymo devkit |
+
+The dependency snapshots record development environments and are **not yet portable clean-install lockfiles**. The ATR snapshot includes local build paths and unrelated packages; the Waymo pins contain dependency conflicts. ATR preprocessing also uses Pandas and scikit-learn, DETR backbones use `timm`, and figure generation uses Matplotlib. See the [repository audit](docs/REPOSITORY_AUDIT.md) for the precise setup gaps before creating a fresh environment.
+
+With the appropriate environment activated, check it with:
+
+```bash
+python --version
+python -m pip check
 ```
-/path/to/your/ATR_Dataset/
-├── i1co/                           # Visible spectrum data
-│   ├── arf-video/                  # Contains i1coXXXX_YYYY.avi files (converted from raw)
-│   └── agt/                        # Contains i1coXXXX_YYYY.agt files
-├── cegr/                           # Mid-Wave Infrared (MWIR) data
-│   ├── arf-video/                  # Contains cegrXXXX_YYYY.avi files (converted from raw)
-│   └── agt/                        # Contains cegrXXXX_YYYY.agt files
-└── Metric/                         # Contains .bbox_met files for precise bounding box info
+
+You will also need:
+
+- The raw datasets or correctly prepared local datasets. Full datasets are not included in Git.
+- Pretrained detector components and a trained fusion checkpoint for evaluation. The experiment-specific checkpoints are not distributed in this repository.
+- `OPENAI_API_KEY` if generating new conditions with the API scripts. Existing condition files can be used when their sample IDs match your data.
+- FFmpeg for the optional video-rendering tools.
+
+Run commands from the working directory shown in each section. Directory names contain spaces, so quote paths when invoking scripts from the repository root.
+
+## ATR: visible and infrared fusion
+
+### Prepare the data
+
+Obtain the ATR data, annotations, and metric files from the [DSIAC ATR database](https://dsiac.dtic.mil/databases/atr-algorithm-development-image-database/). The preprocessing scripts expect visible (`i1co`) and infrared (`cegr`) videos converted to `.avi`, their `.agt` annotations, and `.bbox_met` files.
+
+```text
+ATR_Dataset/
+├── i1co/
+│   ├── arf-video/              # Converted .avi videos
+│   └── agt/
+├── cegr/
+│   ├── arf-video/
+│   └── agt/
+└── Metric/                     # .bbox_met files
 ```
 
-**Processing Scripts:**
-We recommend placing the following scripts and the `config_utils.py` file into a dedicated `data_processing/atr/` directory within your local `VLCFusion` repository clone for better organization.
+The preprocessing helpers parse annotations, prepare frame metadata, synchronize the modalities, and extract images. Review the scenario/class mappings in [`config_utils.py`](ATR%20Experiment/ATR%20data%20preprocessing/config_utils.py) for your data.
 
-**1. Configuration Utility (`ATR Experiment/ATR data preprocessing/config_utils.py`)**
-* **Purpose:** This script is not executed directly but serves as a centralized module for shared constants (e.g., lists of scenarios and classes as defined in the VLCFusion paper, target type mappings) and utility functions (e.g., JSON reading, Julian date conversion, data serialization) that are imported by the other processing scripts.
-* **Important:** Please review the `SCENARIOS`, `CLASSES_FILTER`, and `TGTTYPE_TO_ID` / `TGTID_TO_CATEGORIES` mappings within this file to ensure they precisely match the subset of the ATR dataset (e.g., 9 scenarios, 10 target classes) used for the experiments in the VLCFusion paper.
+<details>
+<summary><b>Preprocessing command examples</b></summary>
 
-**2. AGT to JSON Conversion (`ATR Experiment/ATR data preprocessing/agt_to_json_parser.py`)**
-* **Purpose:** Parses the proprietary `.agt` text files (containing frame-by-frame annotations for ATR videos) and converts them into a more accessible `.json` format.
-* **Usage Example:** Run this script for both `cegr` (IR) and `i1co` (Visible) `.agt` files.
-    ```bash
-    # Process Infrared (cegr) .agt files
-    python ATR Experiment/ATR data preprocessing/agt_to_json_parser.py \
-        --agt_path "/path/to/your/ATR_Dataset/cegr/agt" \
-        --save_path "/path/to/your/processed_atr_output/cegr/agt-json"
+Run from the repository root, replacing the three paths below:
 
-    # Process Visible (i1co) .agt files
-    python ATR Experiment/ATR data preprocessing/agt_to_json_parser.py \
-        --agt_path "/path/to/your/ATR_Dataset/i1co/agt" \
-        --save_path "/path/to/your/processed_atr_output/i1co/agt-json"
-    ```
+```bash
+ATR_RAW="/path/to/ATR_Dataset"
+ATR_WORK="/path/to/atr_intermediate"
+ATR_OUTPUT="/path/to/atr_images"
 
-**3. Initial DataFrame Preparation (`ATR Experiment/ATR data preprocessing/prepare_initial_dataframes.py`)**
-* **Purpose:** Creates initial Pandas DataFrames containing detailed metadata. It filters video files based on scenarios/classes defined in `config_utils.py`, ensures that corresponding IR and Visible video tags exist, and extracts frame-level information from the AGT-JSON files.
-* **Usage Example:**
-    ```bash
-    python ATR Experiment/ATR data preprocessing/prepare_initial_dataframes.py \
-        --rgb_video_dir "/path/to/your/ATR_Dataset/i1co/arf-video" \
-        --ir_video_dir "/path/to/your/ATR_Dataset/cegr/arf-video" \
-        --rgb_agt_json_dir "/path/to/your/processed_atr_output/i1co/agt-json" \
-        --ir_agt_json_dir "/path/to/your/processed_atr_output/cegr/agt-json" \
-        --output_dir "/path/to/your/processed_atr_output/metadata_csvs"
-    ```
-* **Outputs:** This script generates `cegr_initial_metadata.csv` (for IR) and `i1co_initial_metadata.csv` (for Visible) in the specified output directory.
+python "ATR Experiment/ATR data preprocessing/agt_to_json_convertor.py" \
+  "$ATR_RAW/cegr/agt" "$ATR_WORK/cegr/agt-json"
+python "ATR Experiment/ATR data preprocessing/agt_to_json_convertor.py" \
+  "$ATR_RAW/i1co/agt" "$ATR_WORK/i1co/agt-json"
 
-**4. IR-RGB Data Combination and Synchronization (`ATR Experiment/ATR data preprocessing/combine_and_synchronize.py`)**
-* **Purpose:** Takes the initial metadata DataFrames and synchronizes IR and Visible frames. For each IR frame, it identifies the closest corresponding Visible frame based on timestamps, adhering to a 100ms tolerance window as specified in the VLCFusion paper.
-* **Usage Example:**
-    ```bash
-    python ATR Experiment/ATR data preprocessing/combine_and_synchronize.py \
-        --ir_metadata_csv "/path/to/your/processed_atr_output/metadata_csvs/cegr_initial_metadata.csv" \
-        --rgb_metadata_csv "/path/to/your/processed_atr_output/metadata_csvs/i1co_initial_metadata.csv" \
-        --output_csv "/path/to/your/processed_atr_output/metadata_csvs/combined_synchronized_data.csv" \
-        --time_tolerance_ms 100
-        # Optional: --ir_train_exclusion_jsonl "path/to/exclude_ir.jsonl"
-        # Optional: --rgb_train_exclusion_jsonl "path/to/exclude_rgb.jsonl"
-    ```
-* **Output:** Produces `combined_synchronized_data.csv`, where each row represents a successfully synchronized IR-Visible frame pair.
+python "ATR Experiment/ATR data preprocessing/prepare_initial_dataframes.py" \
+  --rgb_video_dir "$ATR_RAW/i1co/arf-video" \
+  --ir_video_dir "$ATR_RAW/cegr/arf-video" \
+  --rgb_agt_json_dir "$ATR_WORK/i1co/agt-json" \
+  --ir_agt_json_dir "$ATR_WORK/cegr/agt-json" \
+  --output_dir "$ATR_WORK/metadata_csvs"
 
-**5. Final Image Dataset Construction (`ATR Experiment/ATR data preprocessing/build_image_datasets.py`)**
-* **Purpose:** This script constructs the final image datasets ready for use with VLCFusion. It takes the synchronized frame data and splits it into training, validation, and test sets. The split is performed at the video tag level (e.g., all frames from `cegr02003_0001` go into the same set) using a configurable random seed for reproducibility. For each frame pair, it extracts images from the `.avi` files. Bounding boxes for IR images are derived from `.bbox_met` files, while bounding boxes for Visible images are interpolated based on the IR bounding boxes and target center coordinates from the AGT-JSON files. Finally, it generates `metadata.jsonl` annotation files for each data split.
-* **Usage Example:**
-    ```bash
-    python ATR Experiment/ATR data preprocessing/build_image_datasets.py \
-        --combined_csv "/path/to/your/processed_atr_output/metadata_csvs/combined_synchronized_data.csv" \
-        --base_output_dir "/path/to/your/VLCFusion_ATR_dataset" \
-        --ir_video_dir "/path/to/your/ATR_OSU_CTD_Dataset/cegr/arf-video" \
-        --rgb_video_dir "/path/to/your/ATR_OSU_CTD_Dataset/i1co/arf-video" \
-        --ir_agt_json_dir "/path/to/your/processed_atr_output/cegr/agt-json" \
-        --rgb_agt_json_dir "/path/to/your/processed_atr_output/i1co/agt-json" \
-        --metric_dir "/path/to/your/ATR_OSU_CTD_Dataset/Metric" \
-        --train_ratio 0.7 \
-        --val_ratio 0.15 \
-        --random_state 42
-    ```
-* **Output Structure:** The script creates two main dataset directories (e.g., `mwir_vlc_dataset` and `visible_vlc_dataset`) within the `--base_output_dir`. Each of these contains `train/`, `val/`, and `test/` subdirectories, which in turn hold an `images/` folder (with `.png` image files) and a `metadata.jsonl` file. The `metadata.jsonl` contains entries for each image, including its path, dimensions, and a list of annotated objects with their bounding boxes (`[x,y,width,height]`), category names, category IDs, range, and aspect angle information.
-    ```
-    /path/to/your/VLCFusion_ATR_dataset/
-    ├── mwir_vlc_dataset/
-    │   ├── train/
-    │   │   ├── images/
-    │   │   └── metadata.jsonl
-    │   ├── val/
-    │   └── test/
-    └── visible_vlc_dataset/
-        ├── train/
-        │   ├── images/
-        │   └── metadata.jsonl
-        ├── val/
-        └── test/
-    ```
+python "ATR Experiment/ATR data preprocessing/combine_and_synchronize.py" \
+  --ir_metadata_csv "$ATR_WORK/metadata_csvs/cegr_initial_metadata.csv" \
+  --rgb_metadata_csv "$ATR_WORK/metadata_csvs/i1co_initial_metadata.csv" \
+  --output_csv "$ATR_WORK/metadata_csvs/combined_synchronized_data.csv" \
+  --time_tolerance_ms 100
 
-### Training and Evaluation
-**1. ATR Condition Generation (VLM-based Scene Attributes)**
-If your model uses VLM-generated conditions for feature modulation (as described in the VLCFusion paper), run `create_conditions.py` first.
+python "ATR Experiment/ATR data preprocessing/build_image_datasets.py" \
+  --combined_csv "$ATR_WORK/metadata_csvs/combined_synchronized_data.csv" \
+  --base_output_dir "$ATR_OUTPUT" \
+  --ir_video_dir "$ATR_RAW/cegr/arf-video" \
+  --rgb_video_dir "$ATR_RAW/i1co/arf-video" \
+  --ir_agt_json_dir "$ATR_WORK/cegr/agt-json" \
+  --rgb_agt_json_dir "$ATR_WORK/i1co/agt-json" \
+  --metric_dir "$ATR_RAW/Metric" \
+  --train_ratio 0.7 --val_ratio 0.15 --random_state 42
+```
 
-* **Purpose:** Uses a Vision Language Model (e.g., GPT-4o via OpenAI API) to analyze images from the processed ATR dataset and generate boolean answers to a predefined set of questions about scene conditions. These are saved as JSON files.
-* **Location:** `ATR Experiment/create_conditions.py`
-* **Usage Example:** (Run for train, validation, and test splits of one modality, e.g., MWIR, as conditions are typically per scene instance).
-    ```bash
-    # For training set conditions (using MWIR images as input)
-    python "ATR Experiment/create_conditions.py" \
-        "/path/to/your/VLCFusion_ATR_Formatted_Dataset/mwir_vlc_dataset/train" \
-        --metadata_file_name "metadata.jsonl" \
-        --questions_file "ATR Experiment/conditions/preprocess/refined_conditions.json" \
-        --output_file "ATR Experiment/conditions/seen/vlm_train.json" \
-        --api_key "YOUR_OPENAI_API_KEY" # Or ensure OPENAI_API_KEY env var is set
-        # Add other args like --model, --max_workers as needed
+The builder creates `mwir_dataset_final/` and `visible_dataset_final/`, each with `train/`, `val/`, and `test/` directories containing `images/` and `metadata.jsonl`.
 
-    # Repeat for validation and test sets, adjusting input/output paths.
-    # Example for validation:
-    # python "ATR Experiment/create_conditions.py" "/path/to/your/VLCFusion_ATR_Formatted_Dataset/mwir_vlc_dataset/val" --output_file "ATR Experiment/conditions/seen/vlm_val.json" ...
-    ```
+**Current integration gap:** the builder writes bare filenames and `objects.category_id`, whereas the downstream pipeline needs image paths relative to the metadata file (for example, `images/frame.png`) and `objects.category`. Paired `image_id` values must also stay aligned when frames are skipped. These fixes are recorded in the [audit](docs/REPOSITORY_AUDIT.md); raw builder output is not yet ready to feed directly into training.
 
-**2. ATR Training**
-Train the VLCFusion model on the prepared ATR dataset using `ensemble_trainer.py`.
+</details>
 
-* **Location:** `ATR Experiment/ensemble_trainer.py`
-* **Purpose:** This script handles the training of the `MultimodalDetr` model (defined in `ATR Experiment/multimodal_detr.py`). It loads the processed IR and Visible datasets, corresponding VLM conditions, and uses Hugging Face `Trainer` for the training loop.
-* **Usage Example:**
-    ```bash
-    python "ATR Experiment/ensemble_trainer.py" \
-        --output_dir "ATR Experiment/outputs/VLCFusion_ATR_Run1" \
-        --visible_dataset_dir "/path/to/your/VLCFusion_ATR_Formatted_Dataset/visible_vlc_dataset" \
-        --ir_dataset_dir "/path/to/your/VLCFusion_ATR_Formatted_Dataset/mwir_vlc_dataset" \
-        --train_conditions_file "ATR Experiment/conditions/seen/vlm_train.json" \
-        --val_conditions_file "ATR Experiment/conditions/seen/vlm_val.json" \
-        --test_conditions_file "ATR Experiment/conditions/seen/vlm_test.json" \
-        --condition_indices_to_sample_str "16,13,1,11,15,19,18" \
-        --model_dir_1 "path/to/pretrained_ir_component_checkpoint_if_any" \
-        --model_dir_2 "path/to/pretrained_visible_component_checkpoint_if_any" \
-        --base_model_name "facebook/detr-resnet-50" \
-        --ensemble_method "CBAM_FiLM" \
-        --image_size 480 \
-        --num_classes 10 \
-        --per_device_train_batch_size 8 \
-        --gradient_accumulation_steps 2 \
-        --learning_rate 5e-5 \
-        --num_train_epochs 50 \
-        --save_strategy "epoch" \
-        --eval_strategy "epoch" \
-        --load_best_model_at_end True \
-        --metric_for_best_model "eval_map" \
-        --fp16 True \
-        --report_to "wandb" \
-        --run_name "VLCFusion_ATR_CBAM_FiLM_Run1" \
-        # Add other relevant ModelArguments, DataArguments, TrainingArguments as needed
-    ```
-* Ensure paths to pretrained components (`model_dir_1`, `model_dir_2`) are correct if you are initializing parts of `MultimodalDetr` from existing checkpoints. If training from scratch using the `base_model_name` for DETR backbones, these might point to the Hugging Face model identifier or be handled within `MultimodalDetr`.
+Training expects a Hugging Face `imagefolder` dataset for each modality. A metadata row has this structure:
 
-**3. ATR Evaluation**
-Evaluate your trained VLCFusion model using the provided Jupyter Notebook or a similar evaluation script.
+```json
+{"file_name":"images/frame.png","image_id":0,"height":480,"width":640,"objects":{"bbox":[[100,80,40,30]],"category":[0],"area":[1200]}}
+```
 
-* **Location:** `ATR Experiment/test_ensemble.ipynb`
-* **Purpose:** To assess the trained model's performance on the ATR test set, calculating metrics like mAP.
-* **Usage:**
-    1.  Open and run the `ATR Experiment/test_ensemble.ipynb` notebook using Jupyter.
-    2.  Within the notebook, configure the path to your trained VLCFusion model checkpoint (usually found in the `output_dir` specified during training, e.g., `ATR Experiment/outputs/VLCFusion_ATR_Run1/checkpoint-XXXXX`).
-    3.  Set the paths to the preprocessed ATR test dataset (`mwir_vlc_dataset/test` and `visible_vlc_dataset/test`) and the VLM conditions for the test set (`ATR Experiment/conditions/seen/vlm_test.json`).
-    4.  Execute the cells to load the model and data, perform inference, and compute evaluation metrics.
+Bounding boxes use `[x, y, width, height]`; classes are zero-based. Visible and infrared records must refer to the same synchronized frame pair through `image_id`. Bundled conditions belong to the original experiment splits, so a new split requires matching conditions.
 
+### Generate conditions
 
-## Waymo Open Dataset 📝
+The supplied ATR question list contains 19 conditions. The default VLC Fusion configuration selects seven using the **1-based** indices `16,13,1,11,15,19,18`.
 
-The Waymo Open Dataset is a large-scale, high-resolution dataset for autonomous driving research, featuring LiDAR point clouds, camera imagery, and synchronized sensor data.
+```bash
+cd "ATR Experiment"
 
-### Preparation
+# OPENAI_API_KEY must be set in your environment.
+python create_conditions.py \
+  "/path/to/prepared_atr/infrared_seen/train" \
+  --metadata_file_name metadata.jsonl \
+  --questions_file conditions/preprocess/refined_conditions.json \
+  --output_file /path/to/generated_conditions/vlm_train.json
+```
 
-Preparing the Waymo Open Dataset for use involves several steps:
+Repeat for validation and test data, changing the input split and output filename. Pass the generated files explicitly to the trainer.
 
-**A. Download Waymo Open Dataset:**
-1.  Visit the [Waymo Open Dataset website](https://waymo.com/open/) and download the sensor data (TFRecord files containing LiDAR, camera, and labels) for the splits you intend to use (e.g., training, validation).
-2.  Organize the downloaded TFRecord files. For example:
-    ```
-    /path/to/your/Waymo_Open_Dataset_Root/
-    ├── training/      # Contains training_0000.tfrecord, ..., training_XXXX.tfrecord
-    ├── validation/    # Contains validation_0000.tfrecord, ..., validation_XXXX.tfrecord
-    ```
+### Train VLC Fusion
 
-**B. Generate Waymo Dataset (`._infos_*.pkl`):**
-MMDetection3D relies on intermediate annotation files (typically `.pkl` format) that store structured information about the dataset (metadata, file paths, annotations).
+From `ATR Experiment/`, with prepared paired datasets and pretrained IR/visible DETR components:
 
-1. **Create GT Data:** Use the `mmdet_data_creation/lidar_dataset_creation.ipynb` script to generate ground truth data for training and evaluation.
+```bash
+python ensemble_trainer.py \
+  --output_dir outputs/vlcfusion_atr \
+  --visible_dataset_dir /path/to/prepared_atr/visible_seen \
+  --ir_dataset_dir /path/to/prepared_atr/infrared_seen \
+  --model_dir_1 /path/to/pretrained_ir_checkpoint \
+  --model_dir_2 /path/to/pretrained_visible_checkpoint \
+  --train_conditions_file conditions/seen/vlm_train.json \
+  --val_conditions_file conditions/seen/vlm_val.json \
+  --test_conditions_file conditions/seen/vlm_test.json \
+  --ensemble_method VLCFusion \
+  --num_vlc_blocks 2 \
+  --condition_indices_to_sample_str "16,13,1,11,15,19,18" \
+  --image_size 480 --num_classes 10 \
+  --per_device_train_batch_size 8 \
+  --per_device_eval_batch_size 8 \
+  --gradient_accumulation_steps 2 \
+  --learning_rate 5e-5 --num_train_epochs 50 \
+  --eval_strategy epoch --save_strategy epoch \
+  --load_best_model_at_end True --metric_for_best_model eval_map \
+  --remove_unused_columns False --eval_do_concat_batches False \
+  --dataloader_num_workers 4 --report_to none \
+  --do_train --do_eval
+```
 
-**C. Create Ground Truth `.bin` Files for Evaluation (using `gt_bin_creator.py`):**
-For official Waymo evaluation, ground truth annotations need to be in a specific `.bin` format.
+This is an example invocation, not a complete recipe for reproducing a particular checkpoint. The trainer loads the pretrained detector components and freezes their backbones/input projections. Supported fusion choices are `VLCFusion`, `CBAM`, `FusionSSD`, `FusionSSD_SelfAttention`, and `LearnableAlign`. Use `python ensemble_trainer.py --help` for all options.
 
-* **Purpose:** The `gt_bin_creator.py` script processes Waymo TFRecord data (guided by an `_infos_*.pkl` file or by scanning TFRecords for specific variations like 'day') to generate these `gt.bin` files.
-* **Location:** `gt_bin_creator.py` (at the root of your VLCFusion project).
-* **Usage Example (for validation split, 'day' variation):**
-    ```bash
-    python gt_bin_creator.py \
-        --ann_file "/path/to/your/Waymo_Open_Dataset_Root/infos/waymo_infos_val.pkl" \
-        --data_root "/path/to/your/Waymo_Open_Dataset_Root/" \
-        --split "validation" \
-        --load_interval 1 \
-        # The script currently hardcodes variation1='day' and output filename.
-        # You might need to modify the script or its parameters for different variations (night, dawn_dusk)
-        # or to control the output .bin filename explicitly.
-    ```
-* **Output:** A file like `gt_day_validation.bin` (name depends on `variation` and `split` in the script) in the current directory or a path specified within the script.
+### Evaluate a checkpoint
 
-### Training and Evaluation
+```bash
+# Run from ATR Experiment/.
+python run_eval_ensemble.py \
+  --checkpoint_dir /path/to/fusion_checkpoint \
+  --model_dir_ir /path/to/pretrained_ir_checkpoint \
+  --model_dir_vis /path/to/pretrained_visible_checkpoint \
+  --visible_dataset_dir /path/to/prepared_atr/visible_seen \
+  --ir_dataset_dir /path/to/prepared_atr/infrared_seen \
+  --ensemble_method VLCFusion --num_vlc_blocks 2 \
+  --condition_indices "16,13,1,11,15,19,18" \
+  --scenario seen --batch_size 8
+```
 
-**1. Waymo Condition Generation:**
-Similar to the ATR dataset, if your Waymo experiments in VLCFusion utilize VLM-generated scene conditions for feature modulation, you'll need to generate these conditions.
+For unseen evaluation, use `--scenario unseen` and the corresponding unseen dataset directories. The script selects `conditions/{scenario}/vlm_test.json` internally; custom splits require matching those files or adapting the script. Block count, condition selection, and component models must match the checkpoint. [`run_eval_indi.py`](ATR%20Experiment/run_eval_indi.py) evaluates individual detectors, and [`test_ensemble.ipynb`](ATR%20Experiment/test_ensemble.ipynb) provides an interactive reference.
 
-* **Purpose:** The `get_conditions.py` script (or `get_features.ipynb`) processes images from the Waymo dataset using a VLM to generate condition vectors.
-* **Location:** `get_conditions.py` (at the root of your VLCFusion project).
-* **Usage Example (adapt based on the refactored `get_conditions.py` arguments and your Waymo data structure):**
-    ```bash
-    # For training set conditions
-    python get_conditions.py \
-        "/path/to/your/Waymo_Open_Dataset_Root/" \
-        "/path/to/your/Waymo_Open_Dataset_Root/infos/waymo_infos_train.pkl" \
-        --questions_file "Waymo Experiment/conditions/preprocess/refined_conditions.json" \
-        --output_jsonl_file "Waymo Experiment/conditions/seen/waymo_vlm_train.jsonl" \
-        --api_key "YOUR_OPENAI_API_KEY" \
-        # Ensure waymo_image_root_path points to the directory structure
-        # from which 'img_path' in waymo_infos_train.pkl can be resolved.
-        # E.g., if img_path is "training/image_0/XXXX.png", then waymo_image_root_path
-        # would be "/path/to/your/Waymo_Open_Dataset_Root/"
-    ```
-    * Repeat for validation and test sets as needed, adjusting input/output file names. The `get_conditions.py` script expects paths to where images can be found relative to the `img_path` field in the Waymo infos file.
+## Waymo: camera and LiDAR fusion
 
-**2. Waymo Training:**
-Training for the Waymo dataset uses the `trainer.py` script with an MMLab configuration file tailored for Waymo. Configuration for different fusion strategies (like `CBAM_FiLM`) and VLM conditions can be specified in the configs folder.
+### Prepare the data
 
-* **Location:** `trainer.py` (at the root of your VLCFusion project).
-* **Purpose:** This script leverages MMEngine's `Runner` to train your `MultimodalDetr` model (or any other model defined in your MMLab config). The configuration file will specify the Waymo dataset (using the `_infos_*.pkl` files), data augmentation pipelines (potentially including GT-AUG using the database created earlier), model architecture, VLM conditions integration, and training schedules.
-* **Usage Example:**
-    ```bash
-    python trainer.py \
-        "configs/your_waymo_experiment_config.py" \
-        --work-dir "Waymo Experiment/outputs/VLCFusion_Waymo_Run1" \
-        # --resume auto # or path to a checkpoint
-    ```
-    * The `your_waymo_experiment_config.py` should be configured to:
-        * Load the Waymo dataset using the `waymo_infos_train.pkl` and `waymo_infos_val.pkl` files.
-        * Specify the path to the GT database if GT-AUG is used.
-        * Incorporate VLM conditions if applicable (e.g., by modifying the data loading pipeline to read `waymo_vlm_train.jsonl`).
-        * Define the `MultimodalDetr` architecture and its fusion strategies.
+The conversion code targets the Waymo perception TFRecord format used by the experiments (v1.4.x). Obtain the sensor data through the [Waymo Open Dataset](https://waymo.com/open/).
 
-**3. Waymo Evaluation:**
-For evaluation, use the `evaluation.py` script provided in the Waymo Experiment directory.
+Activate the Waymo environment and run from the repository root:
+
+```bash
+cd "Waymo Experiment"
+
+# Import/converter check; no dataset required.
+python mmdet_data_creation/smoke_test_single_tfrecord.py --dry-run
+
+# Convert a small real sample and retain its output for inspection.
+python mmdet_data_creation/smoke_test_single_tfrecord.py \
+  --tfrecord /path/to/segment.tfrecord \
+  --num-frames 2 --out /path/to/waymo_smoke_output --keep
+```
+
+Use a new output directory for the smoke test. The full conversion workflow is in [`mmdet_data_creation/lidar_dataset_creation.py`](Waymo%20Experiment/mmdet_data_creation/lidar_dataset_creation.py) and its companion notebook. It currently uses editable constants for input/output paths, time-of-day selection, and splitting. Configure those before running it; the default script selects `day` and does not automatically reproduce every paper split.
+
+The fusion configs expect generated point clouds, camera images, `waymo_infos_*.pkl` files, and split-matched condition JSONL files. Ground-truth metric files are provided as `gt_validation.bin`, `gt_testing.bin`, and `gt_dawn_dusk_testing.bin`; use them only with their matching experiment splits. [`gt_bin_creator.py`](Waymo%20Experiment/gt_bin_creator.py) is available for regeneration, but its variation and splitting logic also need to match the conversion workflow.
+
+See [Waymo evaluator setup](Waymo%20Experiment/WAYMO_EVAL_SETUP.md) for the bundled official metric executable and platform requirements. With the recorded protobuf 4.x environment, the converter smoke test enables the Python protobuf implementation; the full conversion script may also require `PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python`.
+
+### Conditions and configuration
+
+Bundled condition files include the main GPT-4o responses and Moondream2/SmolVLM alternatives. The current Waymo detector selects 10 entries from the 40-condition vector. [`get_conditions.py`](Waymo%20Experiment/get_conditions.py) generates new responses:
+
+```bash
+# Run from Waymo Experiment/; OPENAI_API_KEY must be set.
+python get_conditions.py \
+  /path/to/front_camera_image_root \
+  /path/to/waymo_infos_train.pkl \
+  --questions_file conditions/preprocess/refined_conditions.json \
+  --output_jsonl_file /path/to/generated_waymo_conditions.jsonl
+```
+
+The image root must resolve each `CAM_FRONT.img_path` in the infos file. **Current integration gap:** this generator writes `original_img_path`, while the fusion loader expects `image_path`. Adapt that field before using newly generated files. The bundled experiment JSONL files already use the loader's schema.
+
+Before training or evaluating, edit a copy of a supplied config to set:
+
+- `model.lidar_model_path`, `model.lidar_model_cfg_path`, and `model.rgb_model_path`.
+- Dataset roots, annotation files, data prefixes, and image-loader paths.
+- Train/validation/test condition JSONL paths and matching evaluator ground-truth files.
+
+Changing a top-level `data_root` through `--cfg-options` does not retroactively update paths already constructed from it in the config; edit the source config or override every affected nested field.
+
+| Config | Current test setup |
+| --- | --- |
+| [`vlc_fusion_10_conditions.py`](Waymo%20Experiment/configs/vlc_fusion_10_conditions.py) | Dawn/dusk; test conditions currently select SmolVLM |
+| [`vlc_fusion_10_conditions_no_cosine.py`](Waymo%20Experiment/configs/vlc_fusion_10_conditions_no_cosine.py) | Night/day; main condition files |
+
+### Training and evaluation
+
+[`trainer.py`](Waymo%20Experiment/trainer.py) is the experiment training entry point. It currently reads its config, work directory, resume behavior, and GPU selection from constants in the script. Update those settings before running:
+
+```bash
+# Run only after adapting trainer.py and the selected config.
+python trainer.py
+```
+
+It does **not** parse `trainer.py CONFIG --work-dir ...`; the earlier README example was incorrect. The generic `tools/train.py` has a CLI, but it does not reproduce all registrations and patches in the experiment trainer.
+
+For evaluation, use the CLI in `eval.py`:
+
+```bash
+# Run from Waymo Experiment/ after adapting the config's paths.
+CUDA_VISIBLE_DEVICES=0 python eval.py \
+  --config configs/vlc_fusion_10_conditions.py \
+  --checkpoint /path/to/fusion_checkpoint.pth \
+  --split both \
+  --work-dir eval_output/vlcfusion \
+  --cfg-options model.test_jsonl_file=conditions/dawn_dusk_testing.jsonl
+```
+
+Here the explicit condition override selects the main GPT-4o dawn/dusk conditions. `--split val`, `test`, or `both` chooses the loaders defined by the config. Evaluation reports official Waymo 3D mAP/mAPH through `CustomWaymoMetric`.
+
+## Citation
+
+If you use VLC Fusion in your research, please cite our paper:
+
+```bibtex
+@inproceedings{taparia2027vlc,
+  title     = {{VLC Fusion}: Vision-Language Conditioned Sensor Fusion for Robust Object Detection},
+  author    = {Taparia, Aditya and Ngu, Noel and Leiva, Mario and
+               Kricheli, Joshua Shay and Corcoran, John and Bastian, Nathaniel D. and
+               Simari, Gerardo and Shakarian, Paulo and Senanayake, Ransalu},
+  booktitle = {Machine Learning and Knowledge Discovery in Databases. Research Track and Applied Data Science Track},
+  series    = {Lecture Notes in Computer Science},
+  volume    = {16948},
+  pages     = {51--68},
+  publisher = {Springer Nature Switzerland},
+  address   = {Cham},
+  year      = {2027},
+  doi       = {10.1007/978-3-032-37679-4_4},
+  url       = {https://doi.org/10.1007/978-3-032-37679-4_4}
+}
+```

@@ -230,7 +230,7 @@ from torchvision.transforms import ToPILImage
 
 from mmengine.registry import MODELS
 from mmdet3d.utils import ConfigType, OptConfigType, OptMultiConfig
-from mmdet3d.models.detectors.single_stage import SingleStage3DDetectorCustom, SingleStage3DDetector
+from mmdet3d.models.detectors.single_stage import SingleStage3DDetector
 from mmdet3d.models.detectors.base import Base3DDetector
 from mmdet3d.structures.det3d_data_sample import OptSampleList, SampleList
 

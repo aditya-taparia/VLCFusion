@@ -6,7 +6,8 @@ _base_ = [
 ]
 
 dataset_type = 'WaymoDataset'
-data_root = '/mnt/data/ataparia/LidarTraining/night-day-frames/'
+data_root = '/data/ataparia/LidarTraining/night-day-frames/'
+test_data_root = '/data/ataparia/LidarTraining/dawn_dusk-frames/'
 class_names = ['Car', 'Pedestrian', 'Cyclist']
 metainfo = dict(classes=class_names)
 
@@ -55,8 +56,8 @@ train_pipeline = [
     dict(type='PointShuffle'),
     dict(
         type='Pack3DDetInputs',
-        keys=['points', 'img', 'gt_bboxes_3d', 'gt_labels_3d', 'gt_bboxes', 'gt_labels', 'img_path'],
-        meta_keys=['box_type_3d', 'sample_idx', 'context_name', 'timestamp'])
+        keys=['points', 'img', 'gt_bboxes_3d', 'gt_labels_3d', 'gt_bboxes', 'gt_labels'],
+        meta_keys=['box_type_3d', 'sample_idx', 'context_name', 'timestamp', 'img_path'])
 ]
 
 test_pipeline = [
@@ -84,8 +85,8 @@ test_pipeline = [
         ]),
     dict(
         type='Pack3DDetInputs',
-        keys=['points', 'img', 'gt_bboxes_3d', 'gt_labels_3d', 'gt_bboxes', 'gt_labels', 'img_path'],
-        meta_keys=['box_type_3d', 'sample_idx', 'context_name', 'timestamp'])
+        keys=['points', 'img', 'gt_bboxes_3d', 'gt_labels_3d', 'gt_bboxes', 'gt_labels'],
+        meta_keys=['box_type_3d', 'sample_idx', 'context_name', 'timestamp', 'img_path'])
 ]
 
 train_dataloader = dict(
@@ -135,7 +136,7 @@ test_dataloader = dict(
     sampler=dict(type='DefaultSampler', shuffle=False),
     dataset=dict(
         type=dataset_type,
-        data_root=data_root,
+        data_root=test_data_root,
         data_prefix=dict(pts='testing/velodyne', img='testing/image_0'),
         ann_file='waymo_infos_test.pkl',
         pipeline=test_pipeline,
@@ -164,10 +165,10 @@ val_cfg = dict(type='ValLoop')
 #     backend_args=backend_args)
 val_evaluator = dict(
     type='WaymoMetric',
-    waymo_bin_file='/home/local/ASURITE/ataparia/snap/snapd-desktop-integration/current/Desktop/mmdet3d/gt_validation.bin',    # data_root + 'waymo_infos_val.pkl'
+    waymo_bin_file='gt_validation.bin',
 )
 test_cfg = dict(type='TestLoop')
 test_evaluator = dict(
     type='WaymoMetric',
-    waymo_bin_file='/home/local/ASURITE/ataparia/snap/snapd-desktop-integration/current/Desktop/mmdet3d/gt_testing.bin',
+    waymo_bin_file='gt_dawn_dusk_testing.bin',
 )

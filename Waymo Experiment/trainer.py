@@ -1,7 +1,7 @@
 import argparse
 import logging
 import os
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 import os.path as osp
 
 from mmengine.config import Config, DictAction
@@ -11,11 +11,45 @@ from mmengine.runner import Runner
 
 from mmdet3d.utils import replace_ceph_backend
 
-from mmdet3d.utils import register_all_modules
-register_all_modules(init_default_scope=False)
+from mmdet3d.utils import register_all_modules as register_mmdet3d
+register_mmdet3d(init_default_scope=True)
 
-from mmdet.utils import register_all_modules
-register_all_modules(init_default_scope=False)
+from mmdet.utils import register_all_modules as register_mmdet
+register_mmdet(init_default_scope=False)
+
+from custom_waymo_metric import CustomWaymoMetric  # noqa: F401
+
+# Patch mmdet.MaxIoUAssigner to handle bboxes_3d/labels_3d from mmdet3d
+from mmdet.models.task_modules.assigners.max_iou_assigner import MaxIoUAssigner as _MaxIoUAssigner
+_orig_assign = _MaxIoUAssigner.assign
+def _patched_assign(self, pred_instances, gt_instances, gt_instances_ignore=None, **kwargs):
+    if not hasattr(gt_instances, 'bboxes') and hasattr(gt_instances, 'bboxes_3d'):
+        gt_instances.bboxes = gt_instances.bboxes_3d
+    if not hasattr(gt_instances, 'labels') and hasattr(gt_instances, 'labels_3d'):
+        gt_instances.labels = gt_instances.labels_3d
+    if gt_instances_ignore is not None and not hasattr(gt_instances_ignore, 'bboxes') and hasattr(gt_instances_ignore, 'bboxes_3d'):
+        gt_instances_ignore.bboxes = gt_instances_ignore.bboxes_3d
+    return _orig_assign(self, pred_instances, gt_instances, gt_instances_ignore, **kwargs)
+_MaxIoUAssigner.assign = _patched_assign
+
+# Override LoadImageFromFile to support data_root argument
+import os.path as _osp
+from typing import Optional as _Optional
+from mmcv.transforms import LoadImageFromFile as _LoadImageFromFile
+from mmengine.registry import TRANSFORMS
+
+@TRANSFORMS.register_module(force=True)
+class LoadImageFromFile(_LoadImageFromFile):
+    def __init__(self, data_root: _Optional[str] = None, **kwargs):
+        super().__init__(**kwargs)
+        self.data_root = data_root
+
+    def transform(self, results: dict) -> _Optional[dict]:
+        if self.data_root is not None and 'img_path' in results:
+            orig = results['img_path']
+            if not _osp.isabs(orig) or not _osp.exists(orig):
+                results['img_path'] = _osp.join(self.data_root, _osp.basename(orig))
+        return super().transform(results)
 
 # Copyright (c) OpenMMLab. All rights reserved.
 from mmengine.utils import is_list_of
@@ -537,7 +571,8 @@ class DeltaXYZWLHRBBoxCoder(BaseBBoxCoder):
 from mmdet.evaluation.functional import bbox_overlaps
 # from mmdet.core.bbox.iou_calculators.builder import IOU_CALCULATORS
 # from ..structures import get_box_type
-from mmdet3d.core.bbox.structures import get_box_type
+# from mmdet3d.core.bbox.structures import get_box_type
+from mmdet3d.structures.bbox_3d.utils import get_box_type
 from mmengine.registry import TASK_UTILS
 
 
@@ -872,9 +907,14 @@ def axis_aligned_bbox_overlaps_3d(bboxes1,
     gious = ious - (enclose_area - union) / enclose_area
     return gious
 
-algo = 'cbam_ensemble_vlm_film'
-config = f'configs/{algo}_10_conditions.py'
-work_dir = f'YOUR_PATH/{algo}_30_conditions'
+# algo = 'cbam_ensemble_vlm_film'
+# config = f'configs/{algo}_10_conditions.py'
+# work_dir = f'YOUR_PATH/{algo}_30_conditions'
+algo = 'vlc_fusion'
+config = f'configs/{algo}_10_conditions_no_cosine.py'
+work_dir = f'YOUR_PATH/{algo}_10_conditions_no_cosine'
+# config = f'configs/{algo}_10_conditions.py'
+# work_dir = f'YOUR_PATH/{algo}_10_conditions'
 amp = False
 sync_bn = 'none'
 resume = 'auto'
