@@ -13,7 +13,7 @@
     "rows": 4,
     "columns": 4,
     "clips_per_gif": 2,
-    "display_width": 210
+    "display_width": "100%"
   },
   "notes": [
     "Source paths are relative to the existing vlc_fusion_ECML experiment collection; full source videos are not copied into the repository.",

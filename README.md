@@ -12,7 +12,7 @@
 
 <!-- Wrap the talk badge in a link when the YouTube URL is available. -->
 
-<table align="center">
+<table align="center" width="100%">
   <tr>
     <th colspan="2" align="center"><div align="center">Seen scenarios</div></th>
     <th colspan="2" align="center"><div align="center">Unseen scenarios</div></th>
@@ -21,31 +21,31 @@
     <th colspan="4" align="center"><div align="center">Waymo · Camera + LiDAR</div></th>
   </tr>
   <tr>
-    <td align="center" width="25%"><a href="assets/demo/waymo-seen.gif"><img src="assets/demo/waymo-seen.gif" width="210" alt="WAYMO seen detection examples: day and night"></a></td>
-    <td align="center" width="25%"><a href="assets/demo/waymo-seen-2.gif"><img src="assets/demo/waymo-seen-2.gif" width="210" alt="WAYMO seen detection examples: day and night"></a></td>
-    <td align="center" width="25%"><a href="assets/demo/waymo-unseen.gif"><img src="assets/demo/waymo-unseen.gif" width="210" alt="WAYMO unseen detection examples: dawn/dusk"></a></td>
-    <td align="center" width="25%"><a href="assets/demo/waymo-unseen-2.gif"><img src="assets/demo/waymo-unseen-2.gif" width="210" alt="WAYMO unseen detection examples: dawn/dusk"></a></td>
+    <td align="center" width="25%"><a href="assets/demo/waymo-seen.gif"><img src="assets/demo/waymo-seen.gif" width="100%" alt="WAYMO seen detection examples: day and night"></a></td>
+    <td align="center" width="25%"><a href="assets/demo/waymo-seen-2.gif"><img src="assets/demo/waymo-seen-2.gif" width="100%" alt="WAYMO seen detection examples: day and night"></a></td>
+    <td align="center" width="25%"><a href="assets/demo/waymo-unseen.gif"><img src="assets/demo/waymo-unseen.gif" width="100%" alt="WAYMO unseen detection examples: dawn/dusk"></a></td>
+    <td align="center" width="25%"><a href="assets/demo/waymo-unseen-2.gif"><img src="assets/demo/waymo-unseen-2.gif" width="100%" alt="WAYMO unseen detection examples: dawn/dusk"></a></td>
   </tr>
   <tr>
-    <td align="center" width="25%"><a href="assets/demo/waymo-seen-3.gif"><img src="assets/demo/waymo-seen-3.gif" width="210" alt="WAYMO seen detection examples: day and night"></a></td>
-    <td align="center" width="25%"><a href="assets/demo/waymo-seen-4.gif"><img src="assets/demo/waymo-seen-4.gif" width="210" alt="WAYMO seen detection examples: day and night"></a></td>
-    <td align="center" width="25%"><a href="assets/demo/waymo-unseen-3.gif"><img src="assets/demo/waymo-unseen-3.gif" width="210" alt="WAYMO unseen detection examples: dawn/dusk"></a></td>
-    <td align="center" width="25%"><a href="assets/demo/waymo-unseen-4.gif"><img src="assets/demo/waymo-unseen-4.gif" width="210" alt="WAYMO unseen detection examples: dawn/dusk"></a></td>
+    <td align="center" width="25%"><a href="assets/demo/waymo-seen-3.gif"><img src="assets/demo/waymo-seen-3.gif" width="100%" alt="WAYMO seen detection examples: day and night"></a></td>
+    <td align="center" width="25%"><a href="assets/demo/waymo-seen-4.gif"><img src="assets/demo/waymo-seen-4.gif" width="100%" alt="WAYMO seen detection examples: day and night"></a></td>
+    <td align="center" width="25%"><a href="assets/demo/waymo-unseen-3.gif"><img src="assets/demo/waymo-unseen-3.gif" width="100%" alt="WAYMO unseen detection examples: dawn/dusk"></a></td>
+    <td align="center" width="25%"><a href="assets/demo/waymo-unseen-4.gif"><img src="assets/demo/waymo-unseen-4.gif" width="100%" alt="WAYMO unseen detection examples: dawn/dusk"></a></td>
   </tr>
   <tr>
     <th colspan="4" align="center"><div align="center">ATR · Visible + infrared</div></th>
   </tr>
   <tr>
-    <td align="center" width="25%"><a href="assets/demo/atr-seen.gif"><img src="assets/demo/atr-seen.gif" width="210" alt="ATR seen detection examples: 1000 and 2000 meters"></a></td>
-    <td align="center" width="25%"><a href="assets/demo/atr-seen-2.gif"><img src="assets/demo/atr-seen-2.gif" width="210" alt="ATR seen detection examples: 1000 and 2000 meters"></a></td>
-    <td align="center" width="25%"><a href="assets/demo/atr-unseen.gif"><img src="assets/demo/atr-unseen.gif" width="210" alt="ATR unseen detection examples: 1500 and 3500 meters"></a></td>
-    <td align="center" width="25%"><a href="assets/demo/atr-unseen-2.gif"><img src="assets/demo/atr-unseen-2.gif" width="210" alt="ATR unseen detection examples: 1500 and 2500 meters"></a></td>
+    <td align="center" width="25%"><a href="assets/demo/atr-seen.gif"><img src="assets/demo/atr-seen.gif" width="100%" alt="ATR seen detection examples: 1000 and 2000 meters"></a></td>
+    <td align="center" width="25%"><a href="assets/demo/atr-seen-2.gif"><img src="assets/demo/atr-seen-2.gif" width="100%" alt="ATR seen detection examples: 1000 and 2000 meters"></a></td>
+    <td align="center" width="25%"><a href="assets/demo/atr-unseen.gif"><img src="assets/demo/atr-unseen.gif" width="100%" alt="ATR unseen detection examples: 1500 and 3500 meters"></a></td>
+    <td align="center" width="25%"><a href="assets/demo/atr-unseen-2.gif"><img src="assets/demo/atr-unseen-2.gif" width="100%" alt="ATR unseen detection examples: 1500 and 2500 meters"></a></td>
   </tr>
   <tr>
-    <td align="center" width="25%"><a href="assets/demo/atr-seen-3.gif"><img src="assets/demo/atr-seen-3.gif" width="210" alt="ATR seen detection examples: 3000 and 4000 meters"></a></td>
-    <td align="center" width="25%"><a href="assets/demo/atr-seen-4.gif"><img src="assets/demo/atr-seen-4.gif" width="210" alt="ATR seen detection examples: 1000 and 2000 meters"></a></td>
-    <td align="center" width="25%"><a href="assets/demo/atr-unseen-3.gif"><img src="assets/demo/atr-unseen-3.gif" width="210" alt="ATR unseen detection examples: 1500 and 3500 meters"></a></td>
-    <td align="center" width="25%"><a href="assets/demo/atr-unseen-4.gif"><img src="assets/demo/atr-unseen-4.gif" width="210" alt="ATR unseen detection examples: 2500 and 3500 meters"></a></td>
+    <td align="center" width="25%"><a href="assets/demo/atr-seen-3.gif"><img src="assets/demo/atr-seen-3.gif" width="100%" alt="ATR seen detection examples: 3000 and 4000 meters"></a></td>
+    <td align="center" width="25%"><a href="assets/demo/atr-seen-4.gif"><img src="assets/demo/atr-seen-4.gif" width="100%" alt="ATR seen detection examples: 1000 and 2000 meters"></a></td>
+    <td align="center" width="25%"><a href="assets/demo/atr-unseen-3.gif"><img src="assets/demo/atr-unseen-3.gif" width="100%" alt="ATR unseen detection examples: 1500 and 3500 meters"></a></td>
+    <td align="center" width="25%"><a href="assets/demo/atr-unseen-4.gif"><img src="assets/demo/atr-unseen-4.gif" width="100%" alt="ATR unseen detection examples: 2500 and 3500 meters"></a></td>
   </tr>
 </table>
 
