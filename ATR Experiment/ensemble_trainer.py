@@ -522,6 +522,12 @@ def compute_detection_metrics(
             class_name = id2label[class_id.item()] if id2label else str(class_id.item())
             final_metrics[f"map_{class_name}"] = round(class_map.item(), 4)
 
+    # Per-class mAR@100
+    if "mar_100_per_class" in metrics:
+        for class_id, class_mar in zip(metrics["classes"], metrics["mar_100_per_class"]):
+            class_name = id2label[class_id.item()] if id2label else str(class_id.item())
+            final_metrics[f"mar_100_{class_name}"] = round(class_mar.item(), 4)
+
     return final_metrics
 
 

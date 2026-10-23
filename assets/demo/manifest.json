@@ -1,0 +1,1765 @@
+{
+  "source_collection": "vlc_fusion_ECML",
+  "paper": "https://doi.org/10.1007/978-3-032-37679-4_4",
+  "encoding": {
+    "width": 256,
+    "height": 192,
+    "fps": 5,
+    "palette_colors": 128,
+    "loop": "infinite",
+    "dither": "none"
+  },
+  "gallery": {
+    "rows": 4,
+    "columns": 4,
+    "clips_per_gif": 2,
+    "display_width": 210
+  },
+  "notes": [
+    "Source paths are relative to the existing vlc_fusion_ECML experiment collection; full source videos are not copied into the repository.",
+    "Only trimming, concatenation, scaling, padding, text banners, frame-rate conversion, and palette compression were performed. The recorded prediction overlays were not changed.",
+    "Waymo seen means day/night; unseen means dawn/dusk. ATR seen distances are 1000/2000/3000/4000/5000 m; unseen distances are 1500/2500/3500/4500 m.",
+    "ATR source visualization code applies a fixed IR display offset and projects IR-space predictions into the visible view using paired ground-truth box correspondence (atr_clip_batch.py: ir_box_to_vis/draw_panel). These are presentation overlays, not raw detector-coordinate outputs.",
+    "ATR seen rendering gathers frames from train/val/test; label seen denotes the distance regime, not a held-out test-only clip. Unseen rendering uses test frames.",
+    "These are qualitative examples from existing exports, not evidence of inference throughput or standalone measurements of generalization accuracy.",
+    "The README gallery has 4 columns and 4 content rows: rows 1-2 are Waymo, rows 3-4 are ATR, columns 1-2 are seen and columns 3-4 are unseen. Each GIF switches between two recorded prediction clips."
+  ],
+  "assets": [
+    {
+      "file": "waymo-seen.gif",
+      "dataset": "waymo",
+      "scenario": "seen",
+      "gallery_row": 1,
+      "gallery_column": 1,
+      "size_bytes": 454199,
+      "sources": [
+        {
+          "path": "figures/waymo_montage/clips/day/clip_05/vlc_boxes_rgb.mp4",
+          "start_seconds": 0,
+          "duration_seconds": 2,
+          "banner": "SEEN  |  DAY",
+          "sha256": "7097ea08eea95dd624402194baa3419cbe2f120443f875c7c6bcf0efd36527b9",
+          "clip_metadata": {
+            "scenario": "day",
+            "context_name": "1943605865180232897_680_000_700_000",
+            "clip": "clip_05",
+            "n_frames": 30,
+            "nighttime_fraction": 0.0,
+            "fps": 10,
+            "median_gap_us": 300713,
+            "video_score_threshold": 0.3,
+            "class_names": {
+              "0": "Vehicle",
+              "1": "Pedestrian",
+              "2": "Cyclist"
+            },
+            "gt_counts": {
+              "Vehicle": 3299,
+              "Pedestrian": 1915,
+              "Cyclist": 0
+            },
+            "ssd_pred_counts": {
+              "Vehicle": 1890,
+              "Pedestrian": 1520,
+              "Cyclist": 1
+            },
+            "vlc_pred_counts": {
+              "Vehicle": 2329,
+              "Pedestrian": 1762,
+              "Cyclist": 4
+            },
+            "sample_indices": [
+              10009021,
+              10003407,
+              10001718,
+              10001497,
+              10007635,
+              10001849,
+              10005368,
+              10003259,
+              10008040,
+              10004932,
+              10006450,
+              10005694,
+              10007685,
+              10004662,
+              10005975,
+              10004319,
+              10004708,
+              10001701,
+              10005336,
+              10001566,
+              10001677,
+              10001141,
+              10005181,
+              10002057,
+              10008650,
+              10006197,
+              10007087,
+              10004180,
+              10007282,
+              10006153
+            ]
+          }
+        },
+        {
+          "path": "figures/waymo_montage/clips/night/clip_01/vlc_boxes_rgb.mp4",
+          "start_seconds": 0,
+          "duration_seconds": 2,
+          "banner": "SEEN  |  NIGHT",
+          "sha256": "b47ddec7544908cab79aa2efa171f7c3f960a64e6cfffe029e0e0b312bd2f24b",
+          "clip_metadata": {
+            "scenario": "night",
+            "context_name": "2323851946122476774_7240_000_7260_000",
+            "clip": "clip_01",
+            "n_frames": 28,
+            "nighttime_fraction": 0.75,
+            "fps": 10,
+            "median_gap_us": 400011,
+            "video_score_threshold": 0.3,
+            "class_names": {
+              "0": "Vehicle",
+              "1": "Pedestrian",
+              "2": "Cyclist"
+            },
+            "gt_counts": {
+              "Vehicle": 1231,
+              "Pedestrian": 561,
+              "Cyclist": 16
+            },
+            "ssd_pred_counts": {
+              "Vehicle": 992,
+              "Pedestrian": 691,
+              "Cyclist": 12
+            },
+            "vlc_pred_counts": {
+              "Vehicle": 1033,
+              "Pedestrian": 703,
+              "Cyclist": 11
+            },
+            "sample_indices": [
+              1000537,
+              1000873,
+              1000192,
+              1000755,
+              1000226,
+              1000253,
+              1000183,
+              1000061,
+              1000295,
+              1000263,
+              1000900,
+              1000535,
+              1000107,
+              1000361,
+              1000149,
+              1000094,
+              1000370,
+              1000476,
+              1000272,
+              1000790,
+              1000740,
+              1000478,
+              1000386,
+              1000475,
+              1000079,
+              1000120,
+              1000490,
+              1000473
+            ]
+          }
+        }
+      ],
+      "ffmpeg_filter": "[0:v]setpts=PTS-STARTPTS,fps=5,scale=256:170:force_original_aspect_ratio=decrease:flags=lanczos,setsar=1,pad=256:170:(ow-iw)/2:(oh-ih)/2:color=0x101820,pad=256:192:0:22:color=0x101820,drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf:text=SEEN  |  DAY:fontcolor=white:fontsize=11:x=8:y=4[v0];[1:v]setpts=PTS-STARTPTS,fps=5,scale=256:170:force_original_aspect_ratio=decrease:flags=lanczos,setsar=1,pad=256:170:(ow-iw)/2:(oh-ih)/2:color=0x101820,pad=256:192:0:22:color=0x101820,drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf:text=SEEN  |  NIGHT:fontcolor=white:fontsize=11:x=8:y=4[v1];[v0][v1]concat=n=2:v=1:a=0,split[a][b];[a]palettegen=max_colors=128:stats_mode=full[p];[b][p]paletteuse=dither=none:diff_mode=rectangle[gif]"
+    },
+    {
+      "file": "waymo-seen-2.gif",
+      "dataset": "waymo",
+      "scenario": "seen",
+      "gallery_row": 1,
+      "gallery_column": 2,
+      "size_bytes": 406101,
+      "sources": [
+        {
+          "path": "figures/waymo_montage/clips/day/clip_04/vlc_boxes_rgb.mp4",
+          "start_seconds": 0,
+          "duration_seconds": 2,
+          "banner": "SEEN  |  DAY",
+          "sha256": "df755d310ad919393a00d240bdb93a1b9d74d53b3bfcffd9d393fabb3adb492f",
+          "clip_metadata": {
+            "scenario": "day",
+            "context_name": "6229371035421550389_2220_000_2240_000",
+            "clip": "clip_04",
+            "n_frames": 26,
+            "nighttime_fraction": 0.0,
+            "fps": 10,
+            "median_gap_us": 300134,
+            "video_score_threshold": 0.3,
+            "class_names": {
+              "0": "Vehicle",
+              "1": "Pedestrian",
+              "2": "Cyclist"
+            },
+            "gt_counts": {
+              "Vehicle": 1274,
+              "Pedestrian": 77,
+              "Cyclist": 28
+            },
+            "ssd_pred_counts": {
+              "Vehicle": 1101,
+              "Pedestrian": 245,
+              "Cyclist": 22
+            },
+            "vlc_pred_counts": {
+              "Vehicle": 1115,
+              "Pedestrian": 146,
+              "Cyclist": 24
+            },
+            "sample_indices": [
+              10003214,
+              10001043,
+              10001570,
+              10001037,
+              10003292,
+              10002419,
+              10006439,
+              10004407,
+              10008555,
+              10007131,
+              10006502,
+              10003368,
+              10008404,
+              10004497,
+              10007592,
+              10003979,
+              10002662,
+              10006288,
+              10005476,
+              10009092,
+              10004724,
+              10007033,
+              10007565,
+              10003714,
+              10005950,
+              10008164
+            ]
+          }
+        },
+        {
+          "path": "figures/waymo_montage/clips/night/clip_05/vlc_boxes_rgb.mp4",
+          "start_seconds": 0,
+          "duration_seconds": 2,
+          "banner": "SEEN  |  NIGHT",
+          "sha256": "494a7a95b1b605bb06cae9069200e26a1ca9e5a8f8fde8bee6827b716e15b0b5",
+          "clip_metadata": {
+            "scenario": "night",
+            "context_name": "18136695827203527782_2860_000_2880_000",
+            "clip": "clip_05",
+            "n_frames": 22,
+            "nighttime_fraction": 0.8636,
+            "fps": 10,
+            "median_gap_us": 499943,
+            "video_score_threshold": 0.3,
+            "class_names": {
+              "0": "Vehicle",
+              "1": "Pedestrian",
+              "2": "Cyclist"
+            },
+            "gt_counts": {
+              "Vehicle": 1193,
+              "Pedestrian": 1597,
+              "Cyclist": 0
+            },
+            "ssd_pred_counts": {
+              "Vehicle": 827,
+              "Pedestrian": 1342,
+              "Cyclist": 4
+            },
+            "vlc_pred_counts": {
+              "Vehicle": 947,
+              "Pedestrian": 1319,
+              "Cyclist": 11
+            },
+            "sample_indices": [
+              1000803,
+              1000690,
+              1000668,
+              1000514,
+              1000650,
+              1000236,
+              1000155,
+              1000444,
+              1000269,
+              1000854,
+              1000542,
+              1000435,
+              1000594,
+              1000345,
+              1000348,
+              1000250,
+              1000511,
+              1000430,
+              1000758,
+              1000691,
+              1000698,
+              1000321
+            ]
+          }
+        }
+      ],
+      "ffmpeg_filter": "[0:v]setpts=PTS-STARTPTS,fps=5,scale=256:170:force_original_aspect_ratio=decrease:flags=lanczos,setsar=1,pad=256:170:(ow-iw)/2:(oh-ih)/2:color=0x101820,pad=256:192:0:22:color=0x101820,drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf:text=SEEN  |  DAY:fontcolor=white:fontsize=11:x=8:y=4[v0];[1:v]setpts=PTS-STARTPTS,fps=5,scale=256:170:force_original_aspect_ratio=decrease:flags=lanczos,setsar=1,pad=256:170:(ow-iw)/2:(oh-ih)/2:color=0x101820,pad=256:192:0:22:color=0x101820,drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf:text=SEEN  |  NIGHT:fontcolor=white:fontsize=11:x=8:y=4[v1];[v0][v1]concat=n=2:v=1:a=0,split[a][b];[a]palettegen=max_colors=128:stats_mode=full[p];[b][p]paletteuse=dither=none:diff_mode=rectangle[gif]"
+    },
+    {
+      "file": "waymo-unseen.gif",
+      "dataset": "waymo",
+      "scenario": "unseen",
+      "gallery_row": 1,
+      "gallery_column": 3,
+      "size_bytes": 489645,
+      "sources": [
+        {
+          "path": "figures/waymo_montage/clips/dawn_dusk/clip_07/vlc_boxes_rgb.mp4",
+          "start_seconds": 0,
+          "duration_seconds": 2,
+          "banner": "UNSEEN  |  DAWN / DUSK",
+          "sha256": "1252377ae3344b2dce31014a930df47d328c9fa3327a6c2a50633a34827fc8e8",
+          "clip_metadata": {
+            "scenario": "dawn_dusk",
+            "context_name": "11252086830380107152_1540_000_1560_000",
+            "clip": "clip_07",
+            "n_frames": 60,
+            "nighttime_fraction": 0.1,
+            "fps": 10,
+            "median_gap_us": 100011,
+            "video_score_threshold": 0.3,
+            "class_names": {
+              "0": "Vehicle",
+              "1": "Pedestrian",
+              "2": "Cyclist"
+            },
+            "gt_counts": {
+              "Vehicle": 817,
+              "Pedestrian": 5701,
+              "Cyclist": 60
+            },
+            "ssd_pred_counts": {
+              "Vehicle": 612,
+              "Pedestrian": 5857,
+              "Cyclist": 29
+            },
+            "vlc_pred_counts": {
+              "Vehicle": 639,
+              "Pedestrian": 6065,
+              "Cyclist": 67
+            },
+            "sample_indices": [
+              20004882,
+              20001712,
+              20001659,
+              2000980,
+              20001823,
+              20003450,
+              20002445,
+              20001526,
+              2000402,
+              20005734,
+              20006552,
+              20001127,
+              20004509,
+              20003346,
+              20004934,
+              20005873,
+              20002807,
+              20004947,
+              20005766,
+              20005560,
+              20004513,
+              20004504,
+              20003033,
+              20005193,
+              20005101,
+              2000349,
+              2000720,
+              20001751,
+              20006477,
+              20002040,
+              20004045,
+              20001437,
+              20006508,
+              20004645,
+              20003467,
+              20005164,
+              2000036,
+              20005629,
+              20004283,
+              2000847,
+              20006652,
+              20006541,
+              2000038,
+              2000988,
+              20006215,
+              20001566,
+              20002425,
+              2000890,
+              2000177,
+              20001159,
+              20002744,
+              20006166,
+              20004761,
+              20003694,
+              20001662,
+              20001549,
+              20001098,
+              20006545,
+              20004942,
+              20004554
+            ]
+          }
+        },
+        {
+          "path": "figures/waymo_montage/clips/dawn_dusk/clip_03/vlc_boxes_rgb.mp4",
+          "start_seconds": 0,
+          "duration_seconds": 2,
+          "banner": "UNSEEN  |  DAWN / DUSK",
+          "sha256": "4f43244ac403e06b524aa9443a397103e9c5373b0ab0b6c75575d817315fe8d9",
+          "clip_metadata": {
+            "scenario": "dawn_dusk",
+            "context_name": "16080705915014211452_620_000_640_000",
+            "clip": "clip_03",
+            "n_frames": 60,
+            "nighttime_fraction": 0.75,
+            "fps": 10,
+            "median_gap_us": 100014,
+            "video_score_threshold": 0.3,
+            "class_names": {
+              "0": "Vehicle",
+              "1": "Pedestrian",
+              "2": "Cyclist"
+            },
+            "gt_counts": {
+              "Vehicle": 2474,
+              "Pedestrian": 376,
+              "Cyclist": 0
+            },
+            "ssd_pred_counts": {
+              "Vehicle": 1666,
+              "Pedestrian": 399,
+              "Cyclist": 5
+            },
+            "vlc_pred_counts": {
+              "Vehicle": 1665,
+              "Pedestrian": 233,
+              "Cyclist": 0
+            },
+            "sample_indices": [
+              20002993,
+              2000997,
+              20001490,
+              20004355,
+              20001327,
+              20005523,
+              20002666,
+              2000977,
+              20006108,
+              20003216,
+              20006053,
+              20006573,
+              20002708,
+              20001893,
+              20002775,
+              20004086,
+              20006323,
+              20004093,
+              2000247,
+              20001768,
+              2000676,
+              20007008,
+              20006967,
+              20007017,
+              20006230,
+              20002165,
+              20006768,
+              20006494,
+              20004861,
+              20006129,
+              20004574,
+              20006491,
+              2000867,
+              20002005,
+              20002465,
+              20006111,
+              20005538,
+              2000695,
+              20003822,
+              2000865,
+              2000818,
+              20004156,
+              20001505,
+              20001585,
+              20002514,
+              20003707,
+              20002875,
+              20001781,
+              20001799,
+              20004688,
+              20002100,
+              20003905,
+              20003428,
+              20006589,
+              20003979,
+              2000255,
+              20002718,
+              2000665,
+              20002287,
+              20001943
+            ]
+          }
+        }
+      ],
+      "ffmpeg_filter": "[0:v]setpts=PTS-STARTPTS,fps=5,scale=256:170:force_original_aspect_ratio=decrease:flags=lanczos,setsar=1,pad=256:170:(ow-iw)/2:(oh-ih)/2:color=0x101820,pad=256:192:0:22:color=0x101820,drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf:text=UNSEEN  |  DAWN / DUSK:fontcolor=white:fontsize=11:x=8:y=4[v0];[1:v]setpts=PTS-STARTPTS,fps=5,scale=256:170:force_original_aspect_ratio=decrease:flags=lanczos,setsar=1,pad=256:170:(ow-iw)/2:(oh-ih)/2:color=0x101820,pad=256:192:0:22:color=0x101820,drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf:text=UNSEEN  |  DAWN / DUSK:fontcolor=white:fontsize=11:x=8:y=4[v1];[v0][v1]concat=n=2:v=1:a=0,split[a][b];[a]palettegen=max_colors=128:stats_mode=full[p];[b][p]paletteuse=dither=none:diff_mode=rectangle[gif]"
+    },
+    {
+      "file": "waymo-unseen-2.gif",
+      "dataset": "waymo",
+      "scenario": "unseen",
+      "gallery_row": 1,
+      "gallery_column": 4,
+      "size_bytes": 440704,
+      "sources": [
+        {
+          "path": "figures/waymo_montage/clips/dawn_dusk/clip_01/vlc_boxes_rgb.mp4",
+          "start_seconds": 0,
+          "duration_seconds": 2,
+          "banner": "UNSEEN  |  DAWN / DUSK",
+          "sha256": "f5bc186ef4ad79c7a24d981199a0f896f4d5ceb60e0ea5384a56f009c7f319aa",
+          "clip_metadata": {
+            "scenario": "dawn_dusk",
+            "context_name": "14624061243736004421_1840_000_1860_000",
+            "clip": "clip_01",
+            "n_frames": 60,
+            "nighttime_fraction": 0.0,
+            "fps": 10,
+            "median_gap_us": 99991,
+            "video_score_threshold": 0.3,
+            "class_names": {
+              "0": "Vehicle",
+              "1": "Pedestrian",
+              "2": "Cyclist"
+            },
+            "gt_counts": {
+              "Vehicle": 1437,
+              "Pedestrian": 940,
+              "Cyclist": 0
+            },
+            "ssd_pred_counts": {
+              "Vehicle": 1281,
+              "Pedestrian": 1183,
+              "Cyclist": 0
+            },
+            "vlc_pred_counts": {
+              "Vehicle": 1282,
+              "Pedestrian": 1169,
+              "Cyclist": 0
+            },
+            "sample_indices": [
+              2000863,
+              20002207,
+              20006860,
+              20003087,
+              20002011,
+              20001050,
+              2000013,
+              20005162,
+              20003248,
+              20002222,
+              20003082,
+              20002974,
+              20006762,
+              20001621,
+              20004785,
+              20001330,
+              20001591,
+              20002229,
+              2000147,
+              20006257,
+              20003120,
+              20005130,
+              20006052,
+              20002179,
+              20002056,
+              2000755,
+              2000566,
+              20002082,
+              20004639,
+              20005570,
+              20003804,
+              20002137,
+              20001907,
+              20003538,
+              20004028,
+              20004743,
+              20004179,
+              20003115,
+              20001060,
+              2000161,
+              20001312,
+              20003139,
+              2000317,
+              2000881,
+              20003679,
+              20004545,
+              20005009,
+              20003880,
+              20002382,
+              20003036,
+              20002823,
+              20002025,
+              20006736,
+              20005170,
+              20003456,
+              20006472,
+              20003750,
+              20004890,
+              20005787,
+              20006744
+            ]
+          }
+        },
+        {
+          "path": "figures/waymo_montage/clips/dawn_dusk/clip_05/vlc_boxes_rgb.mp4",
+          "start_seconds": 0,
+          "duration_seconds": 2,
+          "banner": "UNSEEN  |  DAWN / DUSK",
+          "sha256": "45f38aaed22a210df84752e8475fdd376bc5e9e78f9dac00a6b9a76a891f60bd",
+          "clip_metadata": {
+            "scenario": "dawn_dusk",
+            "context_name": "12856053589272984699_1020_000_1040_000",
+            "clip": "clip_05",
+            "n_frames": 60,
+            "nighttime_fraction": 0.8833,
+            "fps": 10,
+            "median_gap_us": 99991,
+            "video_score_threshold": 0.3,
+            "class_names": {
+              "0": "Vehicle",
+              "1": "Pedestrian",
+              "2": "Cyclist"
+            },
+            "gt_counts": {
+              "Vehicle": 2273,
+              "Pedestrian": 96,
+              "Cyclist": 0
+            },
+            "ssd_pred_counts": {
+              "Vehicle": 1549,
+              "Pedestrian": 460,
+              "Cyclist": 15
+            },
+            "vlc_pred_counts": {
+              "Vehicle": 1703,
+              "Pedestrian": 74,
+              "Cyclist": 28
+            },
+            "sample_indices": [
+              20002477,
+              20006769,
+              20003851,
+              20001400,
+              20001133,
+              20005004,
+              20006207,
+              20006638,
+              20005780,
+              20002911,
+              20002262,
+              20006318,
+              20005838,
+              20006829,
+              20004004,
+              20002813,
+              20005973,
+              20001573,
+              2000970,
+              20002752,
+              20006097,
+              20004145,
+              20004987,
+              20004349,
+              20005695,
+              20006827,
+              20004305,
+              20004963,
+              20001155,
+              20006102,
+              20003853,
+              2000830,
+              20004722,
+              20004993,
+              20001950,
+              20004047,
+              20004607,
+              20002973,
+              20004539,
+              20004270,
+              20002639,
+              20006174,
+              20006758,
+              2000582,
+              20004181,
+              20006084,
+              2000637,
+              20005510,
+              20005815,
+              20006127,
+              20006365,
+              20003552,
+              20005708,
+              20006614,
+              20002566,
+              20002738,
+              20004342,
+              20006947,
+              20007046,
+              20002371
+            ]
+          }
+        }
+      ],
+      "ffmpeg_filter": "[0:v]setpts=PTS-STARTPTS,fps=5,scale=256:170:force_original_aspect_ratio=decrease:flags=lanczos,setsar=1,pad=256:170:(ow-iw)/2:(oh-ih)/2:color=0x101820,pad=256:192:0:22:color=0x101820,drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf:text=UNSEEN  |  DAWN / DUSK:fontcolor=white:fontsize=11:x=8:y=4[v0];[1:v]setpts=PTS-STARTPTS,fps=5,scale=256:170:force_original_aspect_ratio=decrease:flags=lanczos,setsar=1,pad=256:170:(ow-iw)/2:(oh-ih)/2:color=0x101820,pad=256:192:0:22:color=0x101820,drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf:text=UNSEEN  |  DAWN / DUSK:fontcolor=white:fontsize=11:x=8:y=4[v1];[v0][v1]concat=n=2:v=1:a=0,split[a][b];[a]palettegen=max_colors=128:stats_mode=full[p];[b][p]paletteuse=dither=none:diff_mode=rectangle[gif]"
+    },
+    {
+      "file": "waymo-seen-3.gif",
+      "dataset": "waymo",
+      "scenario": "seen",
+      "gallery_row": 2,
+      "gallery_column": 1,
+      "size_bytes": 413849,
+      "sources": [
+        {
+          "path": "figures/waymo_montage/clips/day/clip_06/vlc_boxes_rgb.mp4",
+          "start_seconds": 0,
+          "duration_seconds": 2,
+          "banner": "SEEN  |  DAY",
+          "sha256": "1c476011eaef09c2e1ee06d74984921ca8921fa2edfd150349009ee502085c4c",
+          "clip_metadata": {
+            "scenario": "day",
+            "context_name": "8663006751916427679_1520_000_1540_000",
+            "clip": "clip_06",
+            "n_frames": 25,
+            "nighttime_fraction": 0.0,
+            "fps": 10,
+            "median_gap_us": 349984,
+            "video_score_threshold": 0.3,
+            "class_names": {
+              "0": "Vehicle",
+              "1": "Pedestrian",
+              "2": "Cyclist"
+            },
+            "gt_counts": {
+              "Vehicle": 966,
+              "Pedestrian": 487,
+              "Cyclist": 7
+            },
+            "ssd_pred_counts": {
+              "Vehicle": 867,
+              "Pedestrian": 499,
+              "Cyclist": 6
+            },
+            "vlc_pred_counts": {
+              "Vehicle": 906,
+              "Pedestrian": 405,
+              "Cyclist": 3
+            },
+            "sample_indices": [
+              10008140,
+              10008093,
+              10002047,
+              10003060,
+              10005128,
+              10004930,
+              10007172,
+              10004605,
+              10005943,
+              10003301,
+              10002779,
+              10003603,
+              10006252,
+              10005535,
+              10005406,
+              10002348,
+              10001399,
+              10007110,
+              10001863,
+              10005667,
+              10004485,
+              10002354,
+              10007345,
+              10005872,
+              10005581
+            ]
+          }
+        },
+        {
+          "path": "figures/waymo_montage/clips/night/clip_04/vlc_boxes_rgb.mp4",
+          "start_seconds": 0,
+          "duration_seconds": 2,
+          "banner": "SEEN  |  NIGHT",
+          "sha256": "34ba4ffff4758918ea6d3f19253f4d27e9aec09bbeae51d5981802acd52444a6",
+          "clip_metadata": {
+            "scenario": "night",
+            "context_name": "7799671367768576481_260_000_280_000",
+            "clip": "clip_04",
+            "n_frames": 26,
+            "nighttime_fraction": 1.0,
+            "fps": 10,
+            "median_gap_us": 499932,
+            "video_score_threshold": 0.3,
+            "class_names": {
+              "0": "Vehicle",
+              "1": "Pedestrian",
+              "2": "Cyclist"
+            },
+            "gt_counts": {
+              "Vehicle": 878,
+              "Pedestrian": 4,
+              "Cyclist": 0
+            },
+            "ssd_pred_counts": {
+              "Vehicle": 533,
+              "Pedestrian": 61,
+              "Cyclist": 0
+            },
+            "vlc_pred_counts": {
+              "Vehicle": 536,
+              "Pedestrian": 10,
+              "Cyclist": 0
+            },
+            "sample_indices": [
+              1000608,
+              1000131,
+              1000823,
+              1000245,
+              1000373,
+              1000569,
+              1000000,
+              1000835,
+              1000255,
+              1000557,
+              1000018,
+              1000011,
+              1000781,
+              1000626,
+              1000622,
+              1000058,
+              1000586,
+              1000797,
+              1000126,
+              1000587,
+              1000739,
+              1000089,
+              1000171,
+              1000904,
+              1000513,
+              1000198
+            ]
+          }
+        }
+      ],
+      "ffmpeg_filter": "[0:v]setpts=PTS-STARTPTS,fps=5,scale=256:170:force_original_aspect_ratio=decrease:flags=lanczos,setsar=1,pad=256:170:(ow-iw)/2:(oh-ih)/2:color=0x101820,pad=256:192:0:22:color=0x101820,drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf:text=SEEN  |  DAY:fontcolor=white:fontsize=11:x=8:y=4[v0];[1:v]setpts=PTS-STARTPTS,fps=5,scale=256:170:force_original_aspect_ratio=decrease:flags=lanczos,setsar=1,pad=256:170:(ow-iw)/2:(oh-ih)/2:color=0x101820,pad=256:192:0:22:color=0x101820,drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf:text=SEEN  |  NIGHT:fontcolor=white:fontsize=11:x=8:y=4[v1];[v0][v1]concat=n=2:v=1:a=0,split[a][b];[a]palettegen=max_colors=128:stats_mode=full[p];[b][p]paletteuse=dither=none:diff_mode=rectangle[gif]"
+    },
+    {
+      "file": "waymo-seen-4.gif",
+      "dataset": "waymo",
+      "scenario": "seen",
+      "gallery_row": 2,
+      "gallery_column": 2,
+      "size_bytes": 478052,
+      "sources": [
+        {
+          "path": "figures/waymo_montage/clips/day/clip_08/vlc_boxes_rgb.mp4",
+          "start_seconds": 0,
+          "duration_seconds": 2,
+          "banner": "SEEN  |  DAY",
+          "sha256": "ae82534df7fa5729350a94834781dadfb50a2cd0e5809d8ea19f41387e0bc813",
+          "clip_metadata": {
+            "scenario": "day",
+            "context_name": "10498013744573185290_1240_000_1260_000",
+            "clip": "clip_08",
+            "n_frames": 33,
+            "nighttime_fraction": 0.0,
+            "fps": 10,
+            "median_gap_us": 399890,
+            "video_score_threshold": 0.3,
+            "class_names": {
+              "0": "Vehicle",
+              "1": "Pedestrian",
+              "2": "Cyclist"
+            },
+            "gt_counts": {
+              "Vehicle": 1043,
+              "Pedestrian": 1264,
+              "Cyclist": 54
+            },
+            "ssd_pred_counts": {
+              "Vehicle": 868,
+              "Pedestrian": 1302,
+              "Cyclist": 28
+            },
+            "vlc_pred_counts": {
+              "Vehicle": 859,
+              "Pedestrian": 1119,
+              "Cyclist": 28
+            },
+            "sample_indices": [
+              10001111,
+              10001274,
+              10007279,
+              10008196,
+              10006442,
+              10004577,
+              10005619,
+              10004503,
+              10003342,
+              10007732,
+              10002882,
+              10002261,
+              10006501,
+              10003848,
+              10006512,
+              10008301,
+              10008074,
+              10004320,
+              10008882,
+              10002497,
+              10003588,
+              10006614,
+              10002648,
+              10006358,
+              10009014,
+              10007371,
+              10003959,
+              10002633,
+              10007498,
+              10001746,
+              10007435,
+              10003624,
+              10004490
+            ]
+          }
+        },
+        {
+          "path": "figures/waymo_montage/clips/night/clip_09/vlc_boxes_rgb.mp4",
+          "start_seconds": 0,
+          "duration_seconds": 2,
+          "banner": "SEEN  |  NIGHT",
+          "sha256": "918006a2e7c47a08b48455b3a1eb0f1e4d39fa28c53bc914f503840c2859534f",
+          "clip_metadata": {
+            "scenario": "night",
+            "context_name": "8859409804103625626_2760_000_2780_000",
+            "clip": "clip_09",
+            "n_frames": 26,
+            "nighttime_fraction": 0.5385,
+            "fps": 10,
+            "median_gap_us": 500517,
+            "video_score_threshold": 0.3,
+            "class_names": {
+              "0": "Vehicle",
+              "1": "Pedestrian",
+              "2": "Cyclist"
+            },
+            "gt_counts": {
+              "Vehicle": 1483,
+              "Pedestrian": 963,
+              "Cyclist": 0
+            },
+            "ssd_pred_counts": {
+              "Vehicle": 992,
+              "Pedestrian": 969,
+              "Cyclist": 1
+            },
+            "vlc_pred_counts": {
+              "Vehicle": 1038,
+              "Pedestrian": 862,
+              "Cyclist": 1
+            },
+            "sample_indices": [
+              1000200,
+              1000527,
+              1000251,
+              1000211,
+              1000706,
+              1000816,
+              1000887,
+              1000724,
+              1000866,
+              1000287,
+              1000631,
+              1000416,
+              1000212,
+              1000550,
+              1000090,
+              1000182,
+              1000645,
+              1000240,
+              1000078,
+              1000147,
+              1000800,
+              1000124,
+              1000708,
+              1000700,
+              1000508,
+              1000164
+            ]
+          }
+        }
+      ],
+      "ffmpeg_filter": "[0:v]setpts=PTS-STARTPTS,fps=5,scale=256:170:force_original_aspect_ratio=decrease:flags=lanczos,setsar=1,pad=256:170:(ow-iw)/2:(oh-ih)/2:color=0x101820,pad=256:192:0:22:color=0x101820,drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf:text=SEEN  |  DAY:fontcolor=white:fontsize=11:x=8:y=4[v0];[1:v]setpts=PTS-STARTPTS,fps=5,scale=256:170:force_original_aspect_ratio=decrease:flags=lanczos,setsar=1,pad=256:170:(ow-iw)/2:(oh-ih)/2:color=0x101820,pad=256:192:0:22:color=0x101820,drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf:text=SEEN  |  NIGHT:fontcolor=white:fontsize=11:x=8:y=4[v1];[v0][v1]concat=n=2:v=1:a=0,split[a][b];[a]palettegen=max_colors=128:stats_mode=full[p];[b][p]paletteuse=dither=none:diff_mode=rectangle[gif]"
+    },
+    {
+      "file": "waymo-unseen-3.gif",
+      "dataset": "waymo",
+      "scenario": "unseen",
+      "gallery_row": 2,
+      "gallery_column": 3,
+      "size_bytes": 519367,
+      "sources": [
+        {
+          "path": "figures/waymo_montage/clips/dawn_dusk/clip_02/vlc_boxes_rgb.mp4",
+          "start_seconds": 0,
+          "duration_seconds": 2,
+          "banner": "UNSEEN  |  DAWN / DUSK",
+          "sha256": "f7b75af03b29802c12796a48b3dca02c244aec253199e6232e3b5d84da6d8103",
+          "clip_metadata": {
+            "scenario": "dawn_dusk",
+            "context_name": "3451017128488170637_5280_000_5300_000",
+            "clip": "clip_02",
+            "n_frames": 60,
+            "nighttime_fraction": 0.0,
+            "fps": 10,
+            "median_gap_us": 99989,
+            "video_score_threshold": 0.3,
+            "class_names": {
+              "0": "Vehicle",
+              "1": "Pedestrian",
+              "2": "Cyclist"
+            },
+            "gt_counts": {
+              "Vehicle": 1743,
+              "Pedestrian": 303,
+              "Cyclist": 0
+            },
+            "ssd_pred_counts": {
+              "Vehicle": 1501,
+              "Pedestrian": 429,
+              "Cyclist": 0
+            },
+            "vlc_pred_counts": {
+              "Vehicle": 1634,
+              "Pedestrian": 303,
+              "Cyclist": 0
+            },
+            "sample_indices": [
+              20006845,
+              20003418,
+              20001373,
+              20005408,
+              20004381,
+              2000618,
+              20002735,
+              20005711,
+              20005034,
+              20003594,
+              2000263,
+              20006182,
+              20004123,
+              20002898,
+              20004377,
+              20002066,
+              20002882,
+              20002555,
+              20005340,
+              20003900,
+              20004308,
+              20003435,
+              20005126,
+              20005096,
+              2000778,
+              2000740,
+              20004284,
+              20005785,
+              20001054,
+              20004378,
+              20003477,
+              2000752,
+              20002648,
+              2000438,
+              2000310,
+              20002519,
+              20003662,
+              20006988,
+              20002059,
+              20001069,
+              20002264,
+              20006701,
+              20006425,
+              20004174,
+              20004361,
+              20006944,
+              20002766,
+              20004559,
+              20004237,
+              20007001,
+              20006968,
+              20005285,
+              20002643,
+              20006282,
+              20003690,
+              20004264,
+              2000259,
+              20005435,
+              20005583,
+              20004315
+            ]
+          }
+        },
+        {
+          "path": "figures/waymo_montage/clips/dawn_dusk/clip_08/vlc_boxes_rgb.mp4",
+          "start_seconds": 0,
+          "duration_seconds": 2,
+          "banner": "UNSEEN  |  DAWN / DUSK",
+          "sha256": "930e364f5cd5e99633312cef3d8f0f6d22f21d3dc5a04c75a5d49025882fe1e9",
+          "clip_metadata": {
+            "scenario": "dawn_dusk",
+            "context_name": "9579041874842301407_1300_000_1320_000",
+            "clip": "clip_08",
+            "n_frames": 60,
+            "nighttime_fraction": 0.0833,
+            "fps": 10,
+            "median_gap_us": 99991,
+            "video_score_threshold": 0.3,
+            "class_names": {
+              "0": "Vehicle",
+              "1": "Pedestrian",
+              "2": "Cyclist"
+            },
+            "gt_counts": {
+              "Vehicle": 2719,
+              "Pedestrian": 1686,
+              "Cyclist": 0
+            },
+            "ssd_pred_counts": {
+              "Vehicle": 1994,
+              "Pedestrian": 1626,
+              "Cyclist": 2
+            },
+            "vlc_pred_counts": {
+              "Vehicle": 2285,
+              "Pedestrian": 1643,
+              "Cyclist": 0
+            },
+            "sample_indices": [
+              20007040,
+              20002326,
+              20001538,
+              2000117,
+              20004640,
+              20006564,
+              20001630,
+              20007048,
+              2000228,
+              20003886,
+              2000372,
+              20006453,
+              20003386,
+              20003149,
+              20006593,
+              20005345,
+              20002228,
+              20005253,
+              20004000,
+              20003793,
+              20005244,
+              20003877,
+              20001195,
+              20003002,
+              20003602,
+              20006330,
+              20001295,
+              20001727,
+              20003408,
+              20004242,
+              20002309,
+              20001258,
+              20004232,
+              2000973,
+              20003974,
+              20006910,
+              20004983,
+              20004933,
+              20002862,
+              2000327,
+              20003885,
+              20005805,
+              2000333,
+              20005996,
+              20001402,
+              2000446,
+              20002692,
+              20001320,
+              20005517,
+              2000488,
+              20001705,
+              20004589,
+              20006906,
+              2000085,
+              20004631,
+              20002122,
+              20006273,
+              20004167,
+              2000851,
+              20004953
+            ]
+          }
+        }
+      ],
+      "ffmpeg_filter": "[0:v]setpts=PTS-STARTPTS,fps=5,scale=256:170:force_original_aspect_ratio=decrease:flags=lanczos,setsar=1,pad=256:170:(ow-iw)/2:(oh-ih)/2:color=0x101820,pad=256:192:0:22:color=0x101820,drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf:text=UNSEEN  |  DAWN / DUSK:fontcolor=white:fontsize=11:x=8:y=4[v0];[1:v]setpts=PTS-STARTPTS,fps=5,scale=256:170:force_original_aspect_ratio=decrease:flags=lanczos,setsar=1,pad=256:170:(ow-iw)/2:(oh-ih)/2:color=0x101820,pad=256:192:0:22:color=0x101820,drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf:text=UNSEEN  |  DAWN / DUSK:fontcolor=white:fontsize=11:x=8:y=4[v1];[v0][v1]concat=n=2:v=1:a=0,split[a][b];[a]palettegen=max_colors=128:stats_mode=full[p];[b][p]paletteuse=dither=none:diff_mode=rectangle[gif]"
+    },
+    {
+      "file": "waymo-unseen-4.gif",
+      "dataset": "waymo",
+      "scenario": "unseen",
+      "gallery_row": 2,
+      "gallery_column": 4,
+      "size_bytes": 485092,
+      "sources": [
+        {
+          "path": "figures/waymo_montage/clips/dawn_dusk/clip_04/vlc_boxes_rgb.mp4",
+          "start_seconds": 0,
+          "duration_seconds": 2,
+          "banner": "UNSEEN  |  DAWN / DUSK",
+          "sha256": "87cf5bc6984d7b52a487b82ad69b85e40ca4ae9b882d62e10530899f4713113e",
+          "clip_metadata": {
+            "scenario": "dawn_dusk",
+            "context_name": "13207915841618107559_2980_000_3000_000",
+            "clip": "clip_04",
+            "n_frames": 60,
+            "nighttime_fraction": 0.0,
+            "fps": 10,
+            "median_gap_us": 100012,
+            "video_score_threshold": 0.3,
+            "class_names": {
+              "0": "Vehicle",
+              "1": "Pedestrian",
+              "2": "Cyclist"
+            },
+            "gt_counts": {
+              "Vehicle": 2848,
+              "Pedestrian": 277,
+              "Cyclist": 0
+            },
+            "ssd_pred_counts": {
+              "Vehicle": 2100,
+              "Pedestrian": 636,
+              "Cyclist": 2
+            },
+            "vlc_pred_counts": {
+              "Vehicle": 2257,
+              "Pedestrian": 355,
+              "Cyclist": 0
+            },
+            "sample_indices": [
+              20006507,
+              20002986,
+              20004435,
+              20003836,
+              2000605,
+              20003852,
+              20002897,
+              20005577,
+              20004594,
+              20001718,
+              20003292,
+              20002714,
+              20004388,
+              20005816,
+              20004530,
+              20005024,
+              20002789,
+              20006759,
+              2000486,
+              20006756,
+              20002442,
+              20006401,
+              2000654,
+              20004936,
+              20006205,
+              20004642,
+              2000452,
+              20002515,
+              20002726,
+              2000294,
+              20005406,
+              20004029,
+              20004616,
+              20006329,
+              20001861,
+              20004624,
+              20002049,
+              20006379,
+              20006813,
+              2000578,
+              20004160,
+              20005174,
+              2000383,
+              2000633,
+              20004172,
+              20006095,
+              20005472,
+              20001339,
+              20003970,
+              20003728,
+              20006671,
+              2000434,
+              20006281,
+              20001235,
+              20002821,
+              20002170,
+              20004522,
+              20001016,
+              20006016,
+              20003561
+            ]
+          }
+        },
+        {
+          "path": "figures/waymo_montage/clips/dawn_dusk/clip_09/vlc_boxes_rgb.mp4",
+          "start_seconds": 0,
+          "duration_seconds": 2,
+          "banner": "UNSEEN  |  DAWN / DUSK",
+          "sha256": "4bd1368a1ef348e872d7ac70373ec1d1c9217c75791623c7b01bedf9eb31eb94",
+          "clip_metadata": {
+            "scenario": "dawn_dusk",
+            "context_name": "16504318334867223853_480_000_500_000",
+            "clip": "clip_09",
+            "n_frames": 60,
+            "nighttime_fraction": 0.0,
+            "fps": 10,
+            "median_gap_us": 99983,
+            "video_score_threshold": 0.3,
+            "class_names": {
+              "0": "Vehicle",
+              "1": "Pedestrian",
+              "2": "Cyclist"
+            },
+            "gt_counts": {
+              "Vehicle": 2905,
+              "Pedestrian": 697,
+              "Cyclist": 109
+            },
+            "ssd_pred_counts": {
+              "Vehicle": 2017,
+              "Pedestrian": 903,
+              "Cyclist": 64
+            },
+            "vlc_pred_counts": {
+              "Vehicle": 2208,
+              "Pedestrian": 806,
+              "Cyclist": 75
+            },
+            "sample_indices": [
+              20005007,
+              2000477,
+              20005297,
+              20006171,
+              20003074,
+              20004328,
+              20004459,
+              20005668,
+              20005566,
+              20006041,
+              20002605,
+              20006607,
+              20002461,
+              20005203,
+              20001214,
+              20001080,
+              20004276,
+              20001896,
+              20003380,
+              2000594,
+              20002784,
+              20003389,
+              20006415,
+              20002196,
+              20005927,
+              20001237,
+              20005559,
+              20002637,
+              2000369,
+              20001965,
+              2000426,
+              2000715,
+              20003625,
+              20006502,
+              20005986,
+              20001479,
+              20003770,
+              20002853,
+              2000088,
+              2000404,
+              20003290,
+              20006083,
+              20003907,
+              20004902,
+              20006068,
+              20001029,
+              20004451,
+              20001864,
+              20003807,
+              20003755,
+              2000494,
+              20002081,
+              20006830,
+              20004618,
+              20001723,
+              20001597,
+              20003621,
+              20004401,
+              20006544,
+              20005305
+            ]
+          }
+        }
+      ],
+      "ffmpeg_filter": "[0:v]setpts=PTS-STARTPTS,fps=5,scale=256:170:force_original_aspect_ratio=decrease:flags=lanczos,setsar=1,pad=256:170:(ow-iw)/2:(oh-ih)/2:color=0x101820,pad=256:192:0:22:color=0x101820,drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf:text=UNSEEN  |  DAWN / DUSK:fontcolor=white:fontsize=11:x=8:y=4[v0];[1:v]setpts=PTS-STARTPTS,fps=5,scale=256:170:force_original_aspect_ratio=decrease:flags=lanczos,setsar=1,pad=256:170:(ow-iw)/2:(oh-ih)/2:color=0x101820,pad=256:192:0:22:color=0x101820,drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf:text=UNSEEN  |  DAWN / DUSK:fontcolor=white:fontsize=11:x=8:y=4[v1];[v0][v1]concat=n=2:v=1:a=0,split[a][b];[a]palettegen=max_colors=128:stats_mode=full[p];[b][p]paletteuse=dither=none:diff_mode=rectangle[gif]"
+    },
+    {
+      "file": "atr-seen.gif",
+      "dataset": "atr",
+      "scenario": "seen",
+      "gallery_row": 3,
+      "gallery_column": 1,
+      "size_bytes": 474582,
+      "sources": [
+        {
+          "path": "figures/atr_montage/clips/seen/clip_01/fusion.mp4",
+          "start_seconds": 0,
+          "duration_seconds": 2,
+          "banner": "SEEN  |  1000 m",
+          "sha256": "214eda5aba1a4e5c2aa71a1b3cbecf5e33b4c2f24724c696b33f47702a56465e",
+          "clip_metadata": {
+            "tag": "cegr02003_0001",
+            "n_frames": 60,
+            "gt_class": "PICKUP",
+            "range_m": 1011.0,
+            "mean_det_per_frame": 1.0,
+            "dist_nominal": 1000
+          }
+        },
+        {
+          "path": "figures/atr_montage/clips/seen/clip_05/fusion.mp4",
+          "start_seconds": 0,
+          "duration_seconds": 2,
+          "banner": "SEEN  |  2000 m",
+          "sha256": "c0b6350385525ee757f726118832e929b4f4f587da1f8ff6f7c476e00de52417",
+          "clip_metadata": {
+            "tag": "cegr02007_0009",
+            "n_frames": 60,
+            "gt_class": "BMP2",
+            "range_m": 2003.6,
+            "mean_det_per_frame": 1.0,
+            "dist_nominal": 2000
+          }
+        }
+      ],
+      "ffmpeg_filter": "[0:v]setpts=PTS-STARTPTS,fps=5,scale=256:170:force_original_aspect_ratio=decrease:flags=lanczos,setsar=1,pad=256:170:(ow-iw)/2:(oh-ih)/2:color=0x101820,pad=256:192:0:22:color=0x101820,drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf:text=SEEN  |  1000 m:fontcolor=white:fontsize=11:x=8:y=4[v0];[1:v]setpts=PTS-STARTPTS,fps=5,scale=256:170:force_original_aspect_ratio=decrease:flags=lanczos,setsar=1,pad=256:170:(ow-iw)/2:(oh-ih)/2:color=0x101820,pad=256:192:0:22:color=0x101820,drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf:text=SEEN  |  2000 m:fontcolor=white:fontsize=11:x=8:y=4[v1];[v0][v1]concat=n=2:v=1:a=0,split[a][b];[a]palettegen=max_colors=128:stats_mode=full[p];[b][p]paletteuse=dither=none:diff_mode=rectangle[gif]"
+    },
+    {
+      "file": "atr-seen-2.gif",
+      "dataset": "atr",
+      "scenario": "seen",
+      "gallery_row": 3,
+      "gallery_column": 2,
+      "size_bytes": 463291,
+      "sources": [
+        {
+          "path": "figures/atr_montage/clips/seen/clip_02/fusion.mp4",
+          "start_seconds": 0,
+          "duration_seconds": 2,
+          "banner": "SEEN  |  1000 m",
+          "sha256": "585f00ad0c056cd675b9f7c6aa5314182e325300a8d6898c67eea79a7b5c6048",
+          "clip_metadata": {
+            "tag": "cegr02003_0002",
+            "n_frames": 60,
+            "gt_class": "SUV",
+            "range_m": 1000.8,
+            "mean_det_per_frame": 1.0,
+            "dist_nominal": 1000
+          }
+        },
+        {
+          "path": "figures/atr_montage/clips/seen/clip_06/fusion.mp4",
+          "start_seconds": 0,
+          "duration_seconds": 2,
+          "banner": "SEEN  |  2000 m",
+          "sha256": "b7503c208db8c92da1a4a17a006d05905036c2cf036be77d8f87997b9f4a1888",
+          "clip_metadata": {
+            "tag": "cegr02007_0011",
+            "n_frames": 60,
+            "gt_class": "T72",
+            "range_m": 1994.5,
+            "mean_det_per_frame": 1.0,
+            "dist_nominal": 2000
+          }
+        }
+      ],
+      "ffmpeg_filter": "[0:v]setpts=PTS-STARTPTS,fps=5,scale=256:170:force_original_aspect_ratio=decrease:flags=lanczos,setsar=1,pad=256:170:(ow-iw)/2:(oh-ih)/2:color=0x101820,pad=256:192:0:22:color=0x101820,drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf:text=SEEN  |  1000 m:fontcolor=white:fontsize=11:x=8:y=4[v0];[1:v]setpts=PTS-STARTPTS,fps=5,scale=256:170:force_original_aspect_ratio=decrease:flags=lanczos,setsar=1,pad=256:170:(ow-iw)/2:(oh-ih)/2:color=0x101820,pad=256:192:0:22:color=0x101820,drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf:text=SEEN  |  2000 m:fontcolor=white:fontsize=11:x=8:y=4[v1];[v0][v1]concat=n=2:v=1:a=0,split[a][b];[a]palettegen=max_colors=128:stats_mode=full[p];[b][p]paletteuse=dither=none:diff_mode=rectangle[gif]"
+    },
+    {
+      "file": "atr-unseen.gif",
+      "dataset": "atr",
+      "scenario": "unseen",
+      "gallery_row": 3,
+      "gallery_column": 3,
+      "size_bytes": 419804,
+      "sources": [
+        {
+          "path": "figures/atr_montage/clips/unseen/clip_02/fusion.mp4",
+          "start_seconds": 0,
+          "duration_seconds": 2,
+          "banner": "UNSEEN  |  1500 m",
+          "sha256": "49d7abcf6fa8e0c000a31a35e8000425ad941fe7ef6ee4eafc126a12b9dbd119",
+          "clip_metadata": {
+            "tag": "cegr02005_0002",
+            "n_frames": 60,
+            "gt_class": "SUV",
+            "range_m": 1489.9,
+            "mean_det_per_frame": 1.0,
+            "dist_nominal": 1500
+          }
+        },
+        {
+          "path": "figures/atr_montage/clips/unseen/clip_14/fusion.mp4",
+          "start_seconds": 0,
+          "duration_seconds": 2,
+          "banner": "UNSEEN  |  3500 m",
+          "sha256": "5c5b1ee48da4523aa2663f9cf72c939b63677a9588d4b5ed6f0e8bbedc5a6b95",
+          "clip_metadata": {
+            "tag": "cegr02013_0009",
+            "n_frames": 60,
+            "gt_class": "BMP2",
+            "range_m": 3503.8,
+            "mean_det_per_frame": 1.03,
+            "dist_nominal": 3500
+          }
+        }
+      ],
+      "ffmpeg_filter": "[0:v]setpts=PTS-STARTPTS,fps=5,scale=256:170:force_original_aspect_ratio=decrease:flags=lanczos,setsar=1,pad=256:170:(ow-iw)/2:(oh-ih)/2:color=0x101820,pad=256:192:0:22:color=0x101820,drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf:text=UNSEEN  |  1500 m:fontcolor=white:fontsize=11:x=8:y=4[v0];[1:v]setpts=PTS-STARTPTS,fps=5,scale=256:170:force_original_aspect_ratio=decrease:flags=lanczos,setsar=1,pad=256:170:(ow-iw)/2:(oh-ih)/2:color=0x101820,pad=256:192:0:22:color=0x101820,drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf:text=UNSEEN  |  3500 m:fontcolor=white:fontsize=11:x=8:y=4[v1];[v0][v1]concat=n=2:v=1:a=0,split[a][b];[a]palettegen=max_colors=128:stats_mode=full[p];[b][p]paletteuse=dither=none:diff_mode=rectangle[gif]"
+    },
+    {
+      "file": "atr-unseen-2.gif",
+      "dataset": "atr",
+      "scenario": "unseen",
+      "gallery_row": 3,
+      "gallery_column": 4,
+      "size_bytes": 479418,
+      "sources": [
+        {
+          "path": "figures/atr_montage/clips/unseen/clip_03/fusion.mp4",
+          "start_seconds": 0,
+          "duration_seconds": 2,
+          "banner": "UNSEEN  |  1500 m",
+          "sha256": "524992cbfe71a524ace0f28e02ead815156e81bbab7760b3687527738e2bade7",
+          "clip_metadata": {
+            "tag": "cegr02005_0005",
+            "n_frames": 60,
+            "gt_class": "BTR70",
+            "range_m": 1502.2,
+            "mean_det_per_frame": 1.0,
+            "dist_nominal": 1500
+          }
+        },
+        {
+          "path": "figures/atr_montage/clips/unseen/clip_08/fusion.mp4",
+          "start_seconds": 0,
+          "duration_seconds": 2,
+          "banner": "UNSEEN  |  2500 m",
+          "sha256": "e145fe047b33e4f4d75084bbcd53f38b2f3d5e0460d3932ffa85cc453957fc2f",
+          "clip_metadata": {
+            "tag": "cegr02009_0013",
+            "n_frames": 60,
+            "gt_class": "2S3",
+            "range_m": 2508.8,
+            "mean_det_per_frame": 0.97,
+            "dist_nominal": 2500
+          }
+        }
+      ],
+      "ffmpeg_filter": "[0:v]setpts=PTS-STARTPTS,fps=5,scale=256:170:force_original_aspect_ratio=decrease:flags=lanczos,setsar=1,pad=256:170:(ow-iw)/2:(oh-ih)/2:color=0x101820,pad=256:192:0:22:color=0x101820,drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf:text=UNSEEN  |  1500 m:fontcolor=white:fontsize=11:x=8:y=4[v0];[1:v]setpts=PTS-STARTPTS,fps=5,scale=256:170:force_original_aspect_ratio=decrease:flags=lanczos,setsar=1,pad=256:170:(ow-iw)/2:(oh-ih)/2:color=0x101820,pad=256:192:0:22:color=0x101820,drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf:text=UNSEEN  |  2500 m:fontcolor=white:fontsize=11:x=8:y=4[v1];[v0][v1]concat=n=2:v=1:a=0,split[a][b];[a]palettegen=max_colors=128:stats_mode=full[p];[b][p]paletteuse=dither=none:diff_mode=rectangle[gif]"
+    },
+    {
+      "file": "atr-seen-3.gif",
+      "dataset": "atr",
+      "scenario": "seen",
+      "gallery_row": 4,
+      "gallery_column": 1,
+      "size_bytes": 418020,
+      "sources": [
+        {
+          "path": "figures/atr_montage/clips/seen/clip_11/fusion.mp4",
+          "start_seconds": 0,
+          "duration_seconds": 2,
+          "banner": "SEEN  |  3000 m",
+          "sha256": "fe2b171b88fd8dc687403f365b35b70946f8698c54798dff13b52027f9ab680f",
+          "clip_metadata": {
+            "tag": "cegr02011_0002",
+            "n_frames": 60,
+            "gt_class": "SUV",
+            "range_m": 2998.5,
+            "mean_det_per_frame": 1.0,
+            "dist_nominal": 3000
+          }
+        },
+        {
+          "path": "figures/atr_montage/clips/seen/clip_14/fusion.mp4",
+          "start_seconds": 0,
+          "duration_seconds": 2,
+          "banner": "SEEN  |  4000 m",
+          "sha256": "72097558cd9979de62ec6038740841a71b8e0663515771db892f3ff7ee7301bb",
+          "clip_metadata": {
+            "tag": "cegr02015_0009",
+            "n_frames": 60,
+            "gt_class": "BMP2",
+            "range_m": 4004.9,
+            "mean_det_per_frame": 1.02,
+            "dist_nominal": 4000
+          }
+        }
+      ],
+      "ffmpeg_filter": "[0:v]setpts=PTS-STARTPTS,fps=5,scale=256:170:force_original_aspect_ratio=decrease:flags=lanczos,setsar=1,pad=256:170:(ow-iw)/2:(oh-ih)/2:color=0x101820,pad=256:192:0:22:color=0x101820,drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf:text=SEEN  |  3000 m:fontcolor=white:fontsize=11:x=8:y=4[v0];[1:v]setpts=PTS-STARTPTS,fps=5,scale=256:170:force_original_aspect_ratio=decrease:flags=lanczos,setsar=1,pad=256:170:(ow-iw)/2:(oh-ih)/2:color=0x101820,pad=256:192:0:22:color=0x101820,drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf:text=SEEN  |  4000 m:fontcolor=white:fontsize=11:x=8:y=4[v1];[v0][v1]concat=n=2:v=1:a=0,split[a][b];[a]palettegen=max_colors=128:stats_mode=full[p];[b][p]paletteuse=dither=none:diff_mode=rectangle[gif]"
+    },
+    {
+      "file": "atr-seen-4.gif",
+      "dataset": "atr",
+      "scenario": "seen",
+      "gallery_row": 4,
+      "gallery_column": 2,
+      "size_bytes": 508215,
+      "sources": [
+        {
+          "path": "figures/atr_montage/clips/seen/clip_03/fusion.mp4",
+          "start_seconds": 0,
+          "duration_seconds": 2,
+          "banner": "SEEN  |  1000 m",
+          "sha256": "45644bd8fe5391889be7ddeb741de45a44f9cb60ea7626bda4217240bb2c8aa4",
+          "clip_metadata": {
+            "tag": "cegr02003_0005",
+            "n_frames": 60,
+            "gt_class": "BTR70",
+            "range_m": 1013.7,
+            "mean_det_per_frame": 1.02,
+            "dist_nominal": 1000
+          }
+        },
+        {
+          "path": "figures/atr_montage/clips/seen/clip_07/fusion.mp4",
+          "start_seconds": 0,
+          "duration_seconds": 2,
+          "banner": "SEEN  |  2000 m",
+          "sha256": "6b9532b3d94aa76f05859c7242ba4fb5adb5f28c9e74bea8805a64775525745a",
+          "clip_metadata": {
+            "tag": "cegr02007_0012",
+            "n_frames": 60,
+            "gt_class": "ZSU23",
+            "range_m": 1998.8,
+            "mean_det_per_frame": 1.0,
+            "dist_nominal": 2000
+          }
+        }
+      ],
+      "ffmpeg_filter": "[0:v]setpts=PTS-STARTPTS,fps=5,scale=256:170:force_original_aspect_ratio=decrease:flags=lanczos,setsar=1,pad=256:170:(ow-iw)/2:(oh-ih)/2:color=0x101820,pad=256:192:0:22:color=0x101820,drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf:text=SEEN  |  1000 m:fontcolor=white:fontsize=11:x=8:y=4[v0];[1:v]setpts=PTS-STARTPTS,fps=5,scale=256:170:force_original_aspect_ratio=decrease:flags=lanczos,setsar=1,pad=256:170:(ow-iw)/2:(oh-ih)/2:color=0x101820,pad=256:192:0:22:color=0x101820,drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf:text=SEEN  |  2000 m:fontcolor=white:fontsize=11:x=8:y=4[v1];[v0][v1]concat=n=2:v=1:a=0,split[a][b];[a]palettegen=max_colors=128:stats_mode=full[p];[b][p]paletteuse=dither=none:diff_mode=rectangle[gif]"
+    },
+    {
+      "file": "atr-unseen-3.gif",
+      "dataset": "atr",
+      "scenario": "unseen",
+      "gallery_row": 4,
+      "gallery_column": 3,
+      "size_bytes": 493625,
+      "sources": [
+        {
+          "path": "figures/atr_montage/clips/unseen/clip_05/fusion.mp4",
+          "start_seconds": 0,
+          "duration_seconds": 2,
+          "banner": "UNSEEN  |  1500 m",
+          "sha256": "d6071be1f3f589e4440d98ba87c8d16f1a917cf5270138ba6c5e5713049707dd",
+          "clip_metadata": {
+            "tag": "cegr02005_0009",
+            "n_frames": 60,
+            "gt_class": "BMP2",
+            "range_m": 1504.8,
+            "mean_det_per_frame": 1.0,
+            "dist_nominal": 1500
+          }
+        },
+        {
+          "path": "figures/atr_montage/clips/unseen/clip_11/fusion.mp4",
+          "start_seconds": 0,
+          "duration_seconds": 2,
+          "banner": "UNSEEN  |  3500 m",
+          "sha256": "3858a4afe529e5d2a35d9e1171cce3991052b8e49811b8fa395c5ddc7ad8ea88",
+          "clip_metadata": {
+            "tag": "cegr02013_0002",
+            "n_frames": 60,
+            "gt_class": "SUV",
+            "range_m": 3499.2,
+            "mean_det_per_frame": 0.98,
+            "dist_nominal": 3500
+          }
+        }
+      ],
+      "ffmpeg_filter": "[0:v]setpts=PTS-STARTPTS,fps=5,scale=256:170:force_original_aspect_ratio=decrease:flags=lanczos,setsar=1,pad=256:170:(ow-iw)/2:(oh-ih)/2:color=0x101820,pad=256:192:0:22:color=0x101820,drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf:text=UNSEEN  |  1500 m:fontcolor=white:fontsize=11:x=8:y=4[v0];[1:v]setpts=PTS-STARTPTS,fps=5,scale=256:170:force_original_aspect_ratio=decrease:flags=lanczos,setsar=1,pad=256:170:(ow-iw)/2:(oh-ih)/2:color=0x101820,pad=256:192:0:22:color=0x101820,drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf:text=UNSEEN  |  3500 m:fontcolor=white:fontsize=11:x=8:y=4[v1];[v0][v1]concat=n=2:v=1:a=0,split[a][b];[a]palettegen=max_colors=128:stats_mode=full[p];[b][p]paletteuse=dither=none:diff_mode=rectangle[gif]"
+    },
+    {
+      "file": "atr-unseen-4.gif",
+      "dataset": "atr",
+      "scenario": "unseen",
+      "gallery_row": 4,
+      "gallery_column": 4,
+      "size_bytes": 478661,
+      "sources": [
+        {
+          "path": "figures/atr_montage/clips/unseen/clip_07/fusion.mp4",
+          "start_seconds": 0,
+          "duration_seconds": 2,
+          "banner": "UNSEEN  |  2500 m",
+          "sha256": "a15c84c02810cb69444952b940a87f5265f0a512ff41c99406f655c3c0e344e1",
+          "clip_metadata": {
+            "tag": "cegr02009_0012",
+            "n_frames": 60,
+            "gt_class": "ZSU23",
+            "range_m": 2502.5,
+            "mean_det_per_frame": 0.95,
+            "dist_nominal": 2500
+          }
+        },
+        {
+          "path": "figures/atr_montage/clips/unseen/clip_12/fusion.mp4",
+          "start_seconds": 0,
+          "duration_seconds": 2,
+          "banner": "UNSEEN  |  3500 m",
+          "sha256": "dfb37c1c785b03e3b91dfa51e8b8b67df1fd5f5dc5a23fe4fcd2b36966bbabf6",
+          "clip_metadata": {
+            "tag": "cegr02013_0005",
+            "n_frames": 60,
+            "gt_class": "BTR70",
+            "range_m": 3505.1,
+            "mean_det_per_frame": 1.13,
+            "dist_nominal": 3500
+          }
+        }
+      ],
+      "ffmpeg_filter": "[0:v]setpts=PTS-STARTPTS,fps=5,scale=256:170:force_original_aspect_ratio=decrease:flags=lanczos,setsar=1,pad=256:170:(ow-iw)/2:(oh-ih)/2:color=0x101820,pad=256:192:0:22:color=0x101820,drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf:text=UNSEEN  |  2500 m:fontcolor=white:fontsize=11:x=8:y=4[v0];[1:v]setpts=PTS-STARTPTS,fps=5,scale=256:170:force_original_aspect_ratio=decrease:flags=lanczos,setsar=1,pad=256:170:(ow-iw)/2:(oh-ih)/2:color=0x101820,pad=256:192:0:22:color=0x101820,drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf:text=UNSEEN  |  3500 m:fontcolor=white:fontsize=11:x=8:y=4[v1];[v0][v1]concat=n=2:v=1:a=0,split[a][b];[a]palettegen=max_colors=128:stats_mode=full[p];[b][p]paletteuse=dither=none:diff_mode=rectangle[gif]"
+    }
+  ]
+}

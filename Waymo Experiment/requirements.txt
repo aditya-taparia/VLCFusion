@@ -1,0 +1,46 @@
+# VLCFusion — Waymo experiment environment  (Python 3.10, conda env name: `waymo`)
+# mmdet3d-based VLCFusion training/eval + Waymo Open Dataset preprocessing & metrics.
+#
+# These three stacks are version-sensitive, so install IN THIS ORDER:
+#   conda create -n waymo python=3.10 -y && conda activate waymo
+#   # 1) PyTorch (CUDA 11.8 build used here)
+#   pip install torch==2.1.2 torchvision==0.16.2 --index-url https://download.pytorch.org/whl/cu118
+#   # 2) OpenMMLab via mim (mmcv must match torch+cuda)
+#   pip install -U openmim
+#   mim install mmengine==0.10.6 "mmcv==2.1.0" "mmdet==3.2.0"
+#   pip install mmdet3d==1.4.0
+#   # 3) everything else, exact:
+#   pip install -r requirements.lock.txt
+#
+# For a byte-exact clone use requirements.lock.txt (full `pip freeze`, 239 pkgs).
+# The lines below are the human-readable key pins.
+
+# --- core DL (CUDA 11.8 wheels) ---
+torch==2.1.2
+torchvision==0.16.2
+numpy==1.23.0
+
+# --- OpenMMLab 3D stack (install via mim, see header) ---
+mmengine==0.10.6
+mmcv==2.1.0
+mmdet==3.2.0
+mmdet3d==1.4.0
+spconv-cu120==2.3.6
+numba==0.64.0
+nuscenes-devkit==1.1.11
+
+# --- Waymo Open Dataset devkit (TFRecord reading + official metrics) ---
+tensorflow==2.12.0
+waymo-open-dataset-tf-2-12-0==1.6.5
+# !! protobuf gotcha: this env ships protobuf 4.25.8, whose `upb` C-impl rejects the
+#    devkit's ParseFromString(bytearray(...)) -> LiDAR extraction crashes. Pick ONE:
+#      (a) pip install 'protobuf==3.20.*'                       # fast cpp impl  (recommended)
+#      (b) export PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python # no reinstall, but slow
+protobuf==4.25.8
+
+# --- misc ---
+opencv-python==4.13.0.92
+pycocotools==2.0.11
+openai            # VLM condition generation (get_conditions.py)
+tqdm
+wandb

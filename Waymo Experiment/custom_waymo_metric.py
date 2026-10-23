@@ -23,14 +23,28 @@ from mmengine.logging import print_log
 
 
 def _get_eval_bin(name: str) -> str:
-    """Resolve the absolute path to a Waymo eval binary shipped with mmdet3d."""
-    import mmdet3d.evaluation.functional.waymo_utils as _wu
-    path = osp.join(osp.dirname(_wu.__file__), name)
-    if not osp.isfile(path):
-        raise FileNotFoundError(
-            f'Waymo eval binary not found at {path}. '
-            'Make sure mmdet3d is installed with the pre-built binaries.')
-    return path
+    """Resolve the absolute path to a Waymo eval binary.
+
+    Checks the *installed* mmdet3d first, then falls back to the copy vendored in
+    this repo (``Waymo Experiment/mmdet3d/evaluation/functional/waymo_utils/``), so
+    the shipped binary works even when the installed mmdet3d lacks it. See
+    WAYMO_EVAL_SETUP.md for how the binary is built/added.
+    """
+    candidates = []
+    try:
+        import mmdet3d.evaluation.functional.waymo_utils as _wu
+        candidates.append(osp.join(osp.dirname(_wu.__file__), name))
+    except Exception:
+        pass
+    candidates.append(osp.join(
+        osp.dirname(osp.abspath(__file__)),
+        'mmdet3d', 'evaluation', 'functional', 'waymo_utils', name))
+    for path in candidates:
+        if osp.isfile(path):
+            return path
+    raise FileNotFoundError(
+        f'Waymo eval binary {name!r} not found. Looked in: {candidates}. '
+        'See WAYMO_EVAL_SETUP.md to build/add it.')
 
 
 def _parse_mAP_output(ret_texts: str) -> Dict[str, float]:

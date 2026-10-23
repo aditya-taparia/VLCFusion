@@ -1,0 +1,32 @@
+# VLCFusion — ATR experiment environment  (Python 3.10, conda env name: `gen_ai`)
+# HuggingFace DETR-based MultimodalDetr training/eval (VLCFusion on ATR).
+# NOTE: this is a SEPARATE env from the Waymo one (incompatible torch/numpy) — do not mix.
+#
+#   conda create -n vlcfusion-atr python=3.10 -y && conda activate vlcfusion-atr
+#   pip install torch==2.11.0 torchvision==0.26.0     # match your CUDA build
+#   pip install -r requirements.lock.txt              # byte-exact (full freeze)
+#
+# The lines below are the human-readable key pins; requirements.lock.txt is the full freeze.
+
+# --- core DL ---
+torch==2.11.0
+torchvision==0.26.0
+numpy==2.2.6
+
+# --- HuggingFace stack ---
+transformers==4.56.1
+datasets==4.4.1
+accelerate==1.11.0
+huggingface-hub==0.36.0
+
+# --- detection eval / aug / io ---
+torchmetrics==1.8.2          # COCO mAP (per-class map + mar_100)
+albumentations==2.0.8
+pycocotools==2.0.11
+pillow==12.0.0
+opencv-python==4.13.0.92
+
+# --- misc ---
+openai            # VLM condition generation (create_conditions.py)
+tqdm
+wandb
