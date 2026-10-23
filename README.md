@@ -5,12 +5,10 @@
 </p>
 
 <p align="center">
-  <a href="https://doi.org/10.1007/978-3-032-37679-4_4"><img src="assets/paper-button.png" width="84" alt="Read the paper"></a>
+  <a href="https://doi.org/10.1007/978-3-032-37679-4_4" target="_blank" rel="noopener noreferrer"><img src="assets/paper-button.png" width="84" alt="Read the paper"></a>
   &nbsp;
-  <img src="assets/talk-button.png" width="84" alt="Talk — coming soon" title="Talk — coming soon">
+  <a href="https://youtu.be/iFKvibdIzTg" target="_blank" rel="noopener noreferrer"><img src="assets/talk-button.png" width="84" alt="Watch the talk" title="Watch the talk on YouTube"></a>
 </p>
-
-<!-- Wrap the talk badge in a link when the YouTube URL is available. -->
 
 <table align="center" width="100%">
   <tr>
